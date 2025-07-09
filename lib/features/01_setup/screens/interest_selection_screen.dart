@@ -86,7 +86,12 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
     return Scaffold(
       // AppBar'daki actions kısmını sildik
       appBar: AppBar(
-        title: const Text('İlgi Alanlarınızı Seçin'),
+        title: const Text('İlgi Alanlarınızı Seçin',
+        style: TextStyle(
+          fontSize: 25,
+          fontWeight: FontWeight.bold,
+        )),
+
 
         automaticallyImplyLeading: false,
       ),

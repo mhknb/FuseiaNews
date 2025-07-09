@@ -7,7 +7,7 @@ import 'interest_selection_screen.dart';
 
 
 
-// Class isimleri genellikle UpperCamelCase ile başlar.
+
 class ApiKeyScreen extends StatefulWidget {
   const ApiKeyScreen({super.key});
 

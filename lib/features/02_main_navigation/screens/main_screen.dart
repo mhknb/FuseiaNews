@@ -48,7 +48,9 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getAppBarTitle()), // Başlık dinamik olarak değişecek
+        title: Text(_getAppBarTitle(),
+          style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: Center(
