@@ -13,8 +13,6 @@ import '../../../core/api/gemini_api_service.dart';
 
 import '../../../core/models/news_model.dart';
 import '../../../core/sevices/python_api_service.dart';
-import '../../01_setup/screens/interest_selection_screen.dart';
-import '../../04_settings/screens/settings_screen.dart';
 
 
 class PrivateScreen extends StatefulWidget {
@@ -37,20 +35,26 @@ class _PrivateScreenState extends State<PrivateScreen> {
     _haberlerFuture = _apiService.fetchPersonalizedNews();
   }
 
-  // --- YENİ EKLENEN PAYLAŞIM FONKSİYONU BURADA ---
   Future<void> _sharePost(Uint8List imageBytes, String postText) async {
     try {
-      final tempDir = await getTemporaryDirectory();
-      final file = await File('${tempDir.path}/image_to_share.png').create();
-      await file.writeAsBytes(imageBytes);
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/image.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(imageBytes);
 
-      final xFile = XFile(file.path, mimeType: 'image/png');
-
-      await Share.shareXFiles(
-        [xFile],
+      final result = await Share.shareXFiles(
+        [XFile(imagePath)], // Dosya yolundan bir XFile oluşturup liste içine koyuyoruz
         text: postText,
         subject: 'AI ContentFlow ile Oluşturuldu!',
       );
+
+      // (Opsiyonel) Paylaşım durumunu kontrol et
+      if (result.status == ShareResultStatus.success) {
+        print('Paylaşım başarılı!');
+      } else if (result.status == ShareResultStatus.dismissed) {
+        print('Paylaşım iptal edildi.');
+      }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
