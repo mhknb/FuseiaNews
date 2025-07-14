@@ -1,12 +1,20 @@
-// lib/screens/private_screen.dart
+// lib/features/03_feeds/screens/private_screen.dart (veya personalized_feed_screen.dart)
+
 import 'dart:typed_data';
+import 'dart:io'; // Dosya işlemleri için
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart'; // Geçici dizin için
+import 'package:share_plus/share_plus.dart'; // Paylaşım için
+
+// Kendi dosyalarını import et (dosya yollarını kontrol et)
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
-import '../../../core/api/image_generation_service.dart';
+
 import '../../../core/models/news_model.dart';
+import '../../../core/sevices/python_api_service.dart';
 import '../../01_setup/screens/interest_selection_screen.dart';
+import '../../04_settings/screens/settings_screen.dart';
 
 
 class PrivateScreen extends StatefulWidget {
@@ -17,35 +25,52 @@ class PrivateScreen extends StatefulWidget {
 }
 
 class _PrivateScreenState extends State<PrivateScreen> {
-  final RssService _rssService = RssService();
+  // Servis isimlerini dosya isimlerinle eşleştirdim
+  final  RssService _apiService = RssService();
   final GeminiService _geminiService = GeminiService();
-  final ImageGenerationService _imageService = ImageGenerationService();
+  final PythonApiService _pythonApiService = PythonApiService();
   late Future<List<HaberModel>> _haberlerFuture;
 
   @override
   void initState() {
     super.initState();
-
-    _haberlerFuture = _rssService.fetchPersonalizedNews();
+    _haberlerFuture = _apiService.fetchPersonalizedNews();
   }
 
+  // --- YENİ EKLENEN PAYLAŞIM FONKSİYONU BURADA ---
+  Future<void> _sharePost(Uint8List imageBytes, String postText) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final file = await File('${tempDir.path}/image_to_share.png').create();
+      await file.writeAsBytes(imageBytes);
+
+      final xFile = XFile(file.path, mimeType: 'image/png');
+
+      await Share.shareXFiles(
+        [xFile],
+        text: postText,
+        subject: 'AI ContentFlow ile Oluşturuldu!',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Paylaşım sırasında bir hata oluştu: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _summarizeAndShowPopup(HaberModel haber) async {
-    // 1. Önce özeti göstermek için yükleniyor penceresi açalım
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // 2. Gemini'den özet metnini al
-    // Özet için haberin ham açıklamasını kullanıyoruz
     final summary = await _geminiService.summarizeText(haber.description);
-
-    // 3. Yükleniyor penceresini kapat
+    if (!mounted) return;
     Navigator.pop(context);
 
-    // 4. Kullanıcıya özeti ve sonraki adımı gösteren pencereyi aç
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -60,11 +85,7 @@ class _PrivateScreenState extends State<PrivateScreen> {
             icon: const Icon(Icons.photo_camera),
             label: const Text('Post Oluştur'),
             onPressed: () {
-              // Özet penceresini kapat ve asıl içerik oluşturma işlemini başlat
               Navigator.pop(context);
-
-              // DİKKAT: Artık bu fonksiyona özet metni değil,
-              // haberin orijinal, ham açıklamasını yolluyoruz.
               _generatePostAndImage(haber.description, haber.title);
             },
           )
@@ -72,22 +93,19 @@ class _PrivateScreenState extends State<PrivateScreen> {
       ),
     );
   }
+
   Future<void> _generatePostAndImage(String rawContent, String title) async {
-    // Yükleniyor penceresini göster...
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const Dialog(
         child: Padding(
           padding: EdgeInsets.all(20.0),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 20),
-              Text("İçerikler Üretiliyor..."),
-            ],
-          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text("İçerikler Üretiliyor..."),
+          ]),
         ),
       ),
     );
@@ -96,40 +114,29 @@ class _PrivateScreenState extends State<PrivateScreen> {
     Uint8List? finalImageBytes;
 
     try {
-      // 1. ADIM: Eş zamanlı olarak metni ve HAM görseli al.
       final postTextFuture = _geminiService.createInstagramPost(rawContent);
-      // Picsum'dan ham görseli alalım (bu da bir Future)
-      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/512'));
+      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1080'));
 
-      // İki işlemin de bitmesini bekle
       final results = await Future.wait([postTextFuture, rawImageFuture]);
 
       postText = results[0] as String?;
       final rawImageResponse = results[1] as http.Response;
 
-      // 2. ADIM: Ham görseli Python'a gönderip işlenmesini bekle.
       if (rawImageResponse.statusCode == 200) {
-        print("Ham görsel başarıyla alındı, Python'a gönderiliyor...");
-        // processImageWithPython'ı burada çağırıyoruz.
-        // İlk parametre olarak indirdiğimiz ham görselin byte'larını,
-        // ikinci parametre olarak da haberin başlığını veriyoruz.
-        finalImageBytes = await _imageService.processImageWithPython(
+        finalImageBytes = await _pythonApiService.processImageWithPython(
           rawImageResponse.bodyBytes,
           title,
         );
       } else {
         throw Exception('Ham görsel alınamadı. Durum Kodu: ${rawImageResponse.statusCode}');
       }
-
     } catch (e) {
       print("İçerik oluşturma akışında hata: $e");
-      // Hata durumunda postText veya finalImageBytes null kalabilir, bu normal.
     }
 
-    // Yükleniyor penceresini kapat
+    if (!mounted) return;
     Navigator.pop(context);
 
-    // 3. ADIM: Nihai sonucu kullanıcıya göster.
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -138,7 +145,6 @@ class _PrivateScreenState extends State<PrivateScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // finalImageBytes artık Python'dan gelen işlenmiş görseldir
               if (finalImageBytes != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
@@ -157,13 +163,20 @@ class _PrivateScreenState extends State<PrivateScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           FilledButton.icon(
-            icon: Icon(Icons.share),
+            icon: const Icon(Icons.share),
             label: const Text('Instagramda Paylaş'),
+            // --- DÜZELTME BURADA ---
             onPressed: () {
-              // TODO: Buraya 'share_plus' paketi ile paylaşma kodu gelecek.
+              if (finalImageBytes != null && postText != null) {
+                // YAZDIĞIMIZ YENİ FONKSİYONU ÇAĞIRIYORUZ
+                _sharePost(finalImageBytes, postText);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Paylaşılacak içerik bulunamadı!')),
+                );
+              }
             },
           ),
-
         ],
       ),
     );
@@ -179,9 +192,7 @@ class _PrivateScreenState extends State<PrivateScreen> {
         } else if (snapshot.hasError) {
           return Center(child: Text('Hata: ${snapshot.error}'));
         }
-        // YENİ KONTROL: Eğer veri geldiyse ama liste boşsa
         else if (snapshot.hasData && snapshot.data!.isEmpty) {
-          // Kullanıcı henüz ilgi alanı seçmemiş demektir.
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -190,33 +201,19 @@ class _PrivateScreenState extends State<PrivateScreen> {
                 children: [
                   const Icon(Icons.interests_rounded, size: 60, color: Colors.grey),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Henüz ilgi alanı seçmediniz!',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
+                  const Text('İçerik Bulunamadı', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Haber akışınızı kişiselleştirmek için lütfen ilgi alanlarınızı seçin.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                  const Text('Lütfen Ayarlar\'dan ilgi alanlarınızı ve kaynaklarınızı kontrol edin.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.edit),
-                    label: const Text('İlgi Alanlarını Düzenle'),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Yeniden Dene'),
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const InterestSelectionScreen()),
-                      ).then((_) {
-                        // Seçim ekranından geri dönüldüğünde, listeyi yenile.
-                        setState(() {
-                          _haberlerFuture = _rssService.fetchPersonalizedNews();
-                        });
+                      setState(() {
+                        _haberlerFuture = _apiService.fetchPersonalizedNews();
                       });
                     },
-                  )
+                  ),
                 ],
               ),
             ),
@@ -224,7 +221,6 @@ class _PrivateScreenState extends State<PrivateScreen> {
         } else if (snapshot.hasData) {
           final haberler = snapshot.data!;
           return ListView.builder(
-
             itemCount: haberler.length,
             itemBuilder: (context, index) {
               final haber = haberler[index];
@@ -236,18 +232,12 @@ class _PrivateScreenState extends State<PrivateScreen> {
                   title: Text(haber.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      haber.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: Text(haber.description, maxLines: 2, overflow: TextOverflow.ellipsis),
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.auto_awesome, color: Colors.amber),
                     tooltip: 'AI ile İçerik Oluştur',
-                    onPressed: () {
-                      _summarizeAndShowPopup(haber);
-                    },
+                    onPressed: () => _summarizeAndShowPopup(haber),
                   ),
                 ),
               );
