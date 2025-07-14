@@ -63,4 +63,46 @@ class RssService {
       throw Exception('Haberler çekilirken bir sorun oluştu: $e');
     }
   }
+
+  Future<List<HaberModel>> fetchPersonalizedNews() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // 1. Kullanıcının kaydettiği dinamik RSS linklerini al
+    // Ayarlar ekranında 'user_rss_sources' gibi bir anahtarla kaydettiğimizi varsayalım
+    final userRssUrls = prefs.getStringList('user_rss_sources') ?? [];
+
+    // 2. Kullanıcının kaydettiği dinamik YouTube kanallarını al
+    // Bu zaten 'youtube_channels' anahtarıyla kaydediliyor
+    final userYoutubeUrls = prefs.getStringList('youtube_channels') ?? [];
+
+    // Eğer kullanıcı hiçbir şey eklemediyse, boş liste döndür
+    if (userRssUrls.isEmpty && userYoutubeUrls.isEmpty) {
+      return [];
+    }
+
+    // Tüm asenkron işlemleri tutacak bir liste
+    List<Future<List<HaberModel>>> futures = [];
+
+    // 3. Her bir dinamik RSS linki için haber çekme işlemini başlat
+    for (String rssUrl in userRssUrls) {
+      futures.add(_fetchNewsFromUrl(rssUrl));
+    }
+
+    // 4. Her bir dinamik YouTube kanalı için video çekme işlemini başlat
+    for (String youtubeUrl in userYoutubeUrls) {
+      futures.add(_youtubeService.fetchVideosFromSingleChannel(youtubeUrl));
+    }
+
+    // 5. Tüm işlemlerin bitmesini bekle ve sonuçları birleştir
+    final results = await Future.wait(futures);
+    List<HaberModel> allPersonalizedNews = results.expand((list) => list).toList();
+
+    // Son olarak tarihe göre sırala
+    allPersonalizedNews.sort((a, b) {
+      if (a.pubDate == null || b.pubDate == null) return 0;
+      return b.pubDate!.compareTo(a.pubDate!);
+    });
+
+    return allPersonalizedNews;
+  }
 }

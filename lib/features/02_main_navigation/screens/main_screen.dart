@@ -21,7 +21,7 @@ class _MainScreenState extends State<MainScreen> {
 
   static const List<Widget> _widgetOptions = <Widget>[
     GlobalNewsScreen(),
-    personalizedFeedScreen(),
+    PrivateScreen(),
     YoutubeFeedScreen(),
     SettingsScreen(),
   ];

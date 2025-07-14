@@ -2,24 +2,12 @@
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-
 import '../models/news_model.dart';
-/*
-*
-*
-*
-* bu kodd duzeltilecek calısmıyor
-*
-*
-*
-*
-*
-* */
 
 class YoutubeService {
   final _yt = YoutubeExplode();
 
-
+  //--- Bu fonksiyon dışarıdan çağrılacak ---
   Future<List<HaberModel>> fetchVideosFromSingleChannel(String channelUrl) async {
     List<HaberModel> videoList = [];
     try {
