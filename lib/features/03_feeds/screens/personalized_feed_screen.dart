@@ -51,7 +51,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     for (int i = 0; i < itemsToTranslate; i++) {
       var haber = newsList[i];
       if (!haber.isYoutubeVideo) {
-        print("Çevriliyor: ${haber.title}");
+        print("Çevriliyor biraz bekle: ${haber.title}");
 
         haber.title = await _geminiService.translateToTurkish(haber.title) ?? haber.title;
         haber.description = await _geminiService.translateToTurkish(haber.description) ?? haber.description;
@@ -72,7 +72,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
   Future<void> _launchURL(String url) async {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri)) {
-      throw Exception('Could not launch $url');
+      throw Exception('Could not lsaunch $url');
     }
   }
 

@@ -3,19 +3,14 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class ImageGenerationService {
-  // Python backend'imizin yerel adresi
-  // Android emülatörü için 10.0.2.2 kullanılır.
   static const String _pythonApiUrl = 'http://10.0.2.2:5000/process-image';
-  // Orijinal görsel çektigimiz yer
   static const String _imageSourceUrl = 'https://picsum.photos/512';
 
   Future<Uint8List?> processImageWithPython(Uint8List rawImageBytes, String title) async {
     try {
       print("Python backend'e istek gönderiliyor...");
 
-      //bu bilgiyi not al
       var request = http.MultipartRequest('POST', Uri.parse(_pythonApiUrl));
-
       // Metin verisi
       request.fields['title'] = title;
 

@@ -127,7 +127,7 @@ class RssService {
   }
 
   Future<List<HaberModel>> fetchGlobalNews() {
-    return _fetchNewsFromUrl(kGlobalNewsUrl, 'BBC Teknoloji');
+    return _fetchNewsFromUrl(kGlobalNewsUrl, 'BBC Teknolojisimi acaba');
   }
 
 
