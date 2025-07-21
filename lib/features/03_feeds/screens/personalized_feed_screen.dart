@@ -1,38 +1,79 @@
-// lib/features/03_feeds/screens/private_screen.dart (veya personalized_feed_screen.dart)
+// lib/features/03_feeds/screens/personalized_feed_screen.dart
 
+import 'dart:io';
 import 'dart:typed_data';
-import 'dart:io'; // Dosya işlemleri için
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart'; // Geçici dizin için
-import 'package:share_plus/share_plus.dart'; // Paylaşım için
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-// Kendi dosyalarını import et (dosya yollarını kontrol et)
+import '../../../core/api/PythonApiService.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
-
 import '../../../core/models/news_model.dart';
-import '../../../core/sevices/python_api_service.dart';
+import '../../04_settings/screens/settings_screen.dart';
 
-
-class PrivateScreen extends StatefulWidget {
-  const PrivateScreen({super.key});
+class PersonalizedFeedScreen extends StatefulWidget {
+  const PersonalizedFeedScreen({super.key});
 
   @override
-  State<PrivateScreen> createState() => _PrivateScreenState();
+  State<PersonalizedFeedScreen> createState() => _PersonalizedFeedScreenState();
 }
 
-class _PrivateScreenState extends State<PrivateScreen> {
-  // Servis isimlerini dosya isimlerinle eşleştirdim
-  final  RssService _apiService = RssService();
-  final GeminiService _geminiService = GeminiService();
+class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
+  final RssService _apiService = RssService();
+  final GeminiApiService _geminiService = GeminiApiService();
   final PythonApiService _pythonApiService = PythonApiService();
   late Future<List<HaberModel>> _haberlerFuture;
 
   @override
   void initState() {
     super.initState();
-    _haberlerFuture = _apiService.fetchPersonalizedNews();
+    _fetchAndTranslateNews();
+  }
+
+  void _fetchAndTranslateNews() {
+    setState(() {
+      _haberlerFuture = _loadData();
+    });
+  }
+
+
+
+
+  Future<List<HaberModel>> _loadData() async {
+    // 1. Önce haberleri ve videoları normal şekilde çek
+    List<HaberModel> newsList = await _apiService.fetchPersonalizedNews();
+
+    int itemsToTranslate = newsList.length > 10 ? 10 : newsList.length;
+
+    for (int i = 0; i < itemsToTranslate; i++) {
+      var haber = newsList[i];
+      if (!haber.isYoutubeVideo) {
+        print("Çevriliyor: ${haber.title}");
+
+        haber.title = await _geminiService.translateToTurkish(haber.title) ?? haber.title;
+        haber.description = await _geminiService.translateToTurkish(haber.description) ?? haber.description;
+
+        // HER ÇEVİRİDEN SONRA KISA BİR SÜRE BEKLE!
+        // Bu, dakikadaki istek sayısını düşürür.
+        await Future.delayed(const Duration(milliseconds: 500)); // Yarım saniye bekle
+      }
+    }
+    return newsList;
+  }
+
+
+
+
+
+  // URL açma fonksiyonu (YouTube videoları için)
+  Future<void> _launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri)) {
+      throw Exception('Could not launch $url');
+    }
   }
 
   Future<void> _sharePost(Uint8List imageBytes, String postText) async {
@@ -41,36 +82,21 @@ class _PrivateScreenState extends State<PrivateScreen> {
       final imagePath = '${directory.path}/image.png';
       final imageFile = File(imagePath);
       await imageFile.writeAsBytes(imageBytes);
-
-      final result = await Share.shareXFiles(
-        [XFile(imagePath)], // Dosya yolundan bir XFile oluşturup liste içine koyuyoruz
-        text: postText,
-        subject: 'AI ContentFlow ile Oluşturuldu!',
-      );
-
-      // (Opsiyonel) Paylaşım durumunu kontrol et
-      if (result.status == ShareResultStatus.success) {
-        print('Paylaşım başarılı!');
-      } else if (result.status == ShareResultStatus.dismissed) {
-        print('Paylaşım iptal edildi.');
-      }
-
+      final result = await Share.shareXFiles([XFile(imagePath)], text: postText);
+      if (result.status == ShareResultStatus.success) print('Paylaşım başarılı!');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Paylaşım sırasında bir hata oluştu: $e')),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Paylaşım sırasında bir hata oluştu: $e')));
     }
   }
 
-  Future<void> _summarizeAndShowPopup(HaberModel haber) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
 
+
+
+
+
+
+  Future<void> _summarizeAndShowPopup(HaberModel haber) async {
+    showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator()));
     final summary = await _geminiService.summarizeText(haber.description);
     if (!mounted) return;
     Navigator.pop(context);
@@ -81,10 +107,7 @@ class _PrivateScreenState extends State<PrivateScreen> {
         title: const Text('Yapay Zeka Özeti'),
         content: SingleChildScrollView(child: Text(summary ?? 'Özet alınamadı.')),
         actions: [
-          TextButton(
-            child: const Text('Kapat'),
-            onPressed: () => Navigator.pop(context),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Kapat')),
           FilledButton.icon(
             icon: const Icon(Icons.photo_camera),
             label: const Text('Post Oluştur'),
@@ -98,46 +121,29 @@ class _PrivateScreenState extends State<PrivateScreen> {
     );
   }
 
-  Future<void> _generatePostAndImage(String rawContent, String title) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Dialog(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text("İçerikler Üretiliyor..."),
-          ]),
-        ),
-      ),
-    );
 
+
+
+
+
+  Future<void> _generatePostAndImage(String rawContent, String title) async {
+    showDialog(context: context, barrierDismissible: false, builder: (context) => const Dialog(child: Padding(padding: EdgeInsets.all(20.0), child: Row(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(width: 20), Text("İçerikler Üretiliyor...")]))));
     String? postText;
     Uint8List? finalImageBytes;
-
     try {
       final postTextFuture = _geminiService.createInstagramPost(rawContent);
       final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1080'));
-
       final results = await Future.wait([postTextFuture, rawImageFuture]);
-
       postText = results[0] as String?;
       final rawImageResponse = results[1] as http.Response;
-
       if (rawImageResponse.statusCode == 200) {
-        finalImageBytes = await _pythonApiService.processImageWithPython(
-          rawImageResponse.bodyBytes,
-          title,
-        );
+        finalImageBytes = await _pythonApiService.processImageWithPython(rawImageResponse.bodyBytes, title);
       } else {
-        throw Exception('Ham görsel alınamadı. Durum Kodu: ${rawImageResponse.statusCode}');
+        throw Exception('Ham görsel alınamadı. Kod: ${rawImageResponse.statusCode}');
       }
     } catch (e) {
       print("İçerik oluşturma akışında hata: $e");
     }
-
     if (!mounted) return;
     Navigator.pop(context);
 
@@ -145,46 +151,26 @@ class _PrivateScreenState extends State<PrivateScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Paylaşıma Hazır!"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (finalImageBytes != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: Image.memory(finalImageBytes),
-                )
-              else
-                const Icon(Icons.error_outline, color: Colors.red, size: 50),
-              const SizedBox(height: 16),
-              Text(postText ?? "Metin üretilemedi."),
-            ],
-          ),
-        ),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [if (finalImageBytes != null) ClipRRect(borderRadius: BorderRadius.circular(8.0), child: Image.memory(finalImageBytes)) else const Icon(Icons.error_outline, color: Colors.red, size: 50), const SizedBox(height: 16), Text(postText ?? "Metin üretilemedi.")])),
         actions: [
-          TextButton(
-            child: const Text('Kapat'),
-            onPressed: () => Navigator.pop(context),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Kapat')),
           FilledButton.icon(
             icon: const Icon(Icons.share),
             label: const Text('Instagramda Paylaş'),
-            // --- DÜZELTME BURADA ---
             onPressed: () {
-              if (finalImageBytes != null && postText != null) {
-                // YAZDIĞIMIZ YENİ FONKSİYONU ÇAĞIRIYORUZ
-                _sharePost(finalImageBytes, postText);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Paylaşılacak içerik bulunamadı!')),
-                );
-              }
+              if (finalImageBytes != null && postText != null) _sharePost(finalImageBytes, postText);
+              else ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paylaşılacak içerik bulunamadı!')));
             },
           ),
         ],
       ),
     );
   }
+
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -195,8 +181,7 @@ class _PrivateScreenState extends State<PrivateScreen> {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Hata: ${snapshot.error}'));
-        }
-        else if (snapshot.hasData && snapshot.data!.isEmpty) {
+        } else if (snapshot.hasData && snapshot.data!.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -210,14 +195,12 @@ class _PrivateScreenState extends State<PrivateScreen> {
                   const Text('Lütfen Ayarlar\'dan ilgi alanlarınızı ve kaynaklarınızı kontrol edin.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Yeniden Dene'),
+                    icon: const Icon(Icons.settings),
+                    label: const Text('Ayarları Aç'),
                     onPressed: () {
-                      setState(() {
-                        _haberlerFuture = _apiService.fetchPersonalizedNews();
-                      });
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())).then((_) => _fetchAndTranslateNews());
                     },
-                  ),
+                  )
                 ],
               ),
             ),
@@ -228,29 +211,88 @@ class _PrivateScreenState extends State<PrivateScreen> {
             itemCount: haberler.length,
             itemBuilder: (context, index) {
               final haber = haberler[index];
-              return Card(
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
-                  title: Text(haber.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(haber.description, maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.auto_awesome, color: Colors.amber),
-                    tooltip: 'AI ile İçerik Oluştur',
-                    onPressed: () => _summarizeAndShowPopup(haber),
-                  ),
-                ),
-              );
+              // Gelen verinin tipine göre farklı kart göster
+              return haber.isYoutubeVideo
+                  ? _buildYoutubeVideoCard(haber)
+                  : _buildNewsCard(haber);
             },
           );
         } else {
           return const Center(child: Text('Bilinmeyen bir hata oluştu.'));
         }
       },
+    );
+  }
+
+  // --- YARDIMCI KART WIDGET'LARI ---
+  Widget _buildNewsCard(HaberModel haber) {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: InkWell(
+        onTap: () => _summarizeAndShowPopup(haber),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (haber.sourceIconUrl != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12.0, top: 4.0),
+                  child: Image.network(haber.sourceIconUrl!, width: 20, height: 20, errorBuilder: (c, e, s) => const Icon(Icons.language, size: 20)),
+                ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(haber.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Text(haber.sourceName, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    const SizedBox(height: 8),
+                    Text(haber.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              const Padding(padding: EdgeInsets.only(left: 8.0), child: Icon(Icons.auto_awesome, color: Colors.amber)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildYoutubeVideoCard(HaberModel video) {
+    return GestureDetector(
+      onTap: () => _launchURL(video.link),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        elevation: 5,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (video.thumbnailUrl != null)
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.network(video.thumbnailUrl!, height: 200, width: double.infinity, fit: BoxFit.cover, loadingBuilder: (context, child, progress) => progress == null ? child : const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())), errorBuilder: (context, error, stackTrace) => const SizedBox(height: 200, child: Icon(Icons.error, size: 50))),
+                  Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle), child: const Icon(Icons.play_arrow, color: Colors.white, size: 50)),
+                ],
+              ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Text(video.description, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
     );
   }
 }

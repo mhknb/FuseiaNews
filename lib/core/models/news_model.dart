@@ -1,21 +1,24 @@
 class HaberModel {
-  final String title;
-  final String link;
-  final String description;
-  final DateTime? pubDate;
+  String title;
+  String description;
 
-  // YENİ ALANLAR
-  final bool isYoutubeVideo; // Bu bir video mu?
-  final String? videoId; // Video ID'si (örn: d_s8w9_y7Jg)
-  final String? thumbnailUrl; // Küçük resmin URL'si
+  final String link;
+  final DateTime? pubDate;
+  final bool isYoutubeVideo;
+  final String? videoId;
+  final String? thumbnailUrl;
+  final String sourceName;
+  final String? sourceIconUrl;
 
   HaberModel({
     required this.title,
     required this.link,
     required this.description,
     this.pubDate,
-    this.isYoutubeVideo = false, // Varsayılan olarak false
+    this.isYoutubeVideo = false,
     this.videoId,
     this.thumbnailUrl,
+    required this.sourceName,
+    this.sourceIconUrl,
   });
 }

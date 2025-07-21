@@ -1,33 +1,23 @@
 // lib/main.dart
 
+import 'package:ai_content_flow_app/auth_check_screen.dart'; // Yeni kontrol ekranımızı import ediyoruz
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'features/01_setup/screens/onboarding_screen.dart';
-import 'features/02_main_navigation/screens/main_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
+// Bu dosyada artık SharedPreferences veya diğer ekranları import etmemize gerek yok.
+// Bu, main.dart'ı daha temiz ve odaklı hale getirir.
 
 Future<void> main() async {
+  // .env dosyasını uygulama başlarken yüklemek en iyisidir.
+  // Bu işlem genellikle çok hızlıdır ve başlangıç performansını etkilemez.
+  await dotenv.load(fileName: ".env");
 
-  WidgetsFlutterBinding.ensureInitialized();
-
-
-  final prefs = await SharedPreferences.getInstance();
-  final String? apiKey = prefs.getString('user_api_key');
-
-  bool isSetupComplete = apiKey != null && apiKey.isNotEmpty;
-
-  runApp(MyApp(isSetupComplete: isSetupComplete));
+  // runApp() artık basit ve senkron bir şekilde çağrılıyor.
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-
-  final bool isSetupComplete;
-
-  const MyApp({
-    super.key,
-    required this.isSetupComplete,
-  });
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,35 +25,29 @@ class MyApp extends StatelessWidget {
       title: 'AI ContentFlow',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-
         brightness: Brightness.dark,
-
         useMaterial3: true,
-
         colorScheme: ColorScheme.fromSeed(
-
           seedColor: Colors.indigo,
-
           brightness: Brightness.dark,
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-
-          selectedItemColor: Colors.blueAccent,
-
-          unselectedItemColor: Colors.white70, // Hafif şeffaf beyaz
-
+          // Seçili item rengini ana renk şemasından alalım ki tutarlı olsun
+          // Ama istersen Colors.blueAccent olarak da bırakabilirsin.
+          selectedItemColor: Colors.indigoAccent,
+          unselectedItemColor: Colors.white70,
           selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
           unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
+          // type: BottomNavigationBarType.fixed, // 4+ item olunca bu önemlidir
         ),
-
         cardTheme: CardTheme(
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
-//      home: isSetupComplete ? const MainScreen() : const ApiKeyScreen(),
-    //burası duzenlenecek
-        home: isSetupComplete ? const MainScreen() : const OnboardingScreen(),
+      // UYGULAMANIN BAŞLANGIÇ NOKTASI ARTIK HER ZAMAN AuthCheckScreen'DİR.
+      // Bu ekran, kontrolleri yapıp kullanıcıyı doğru yere yönlendirecek.
+      home: const AuthCheckScreen(),
     );
   }
 }

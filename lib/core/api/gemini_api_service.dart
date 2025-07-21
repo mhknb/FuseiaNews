@@ -1,77 +1,91 @@
-// lib/services/gemini_service.dart
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class GeminiService {
+class GeminiApiService {
+  GenerativeModel? _model;
 
-  Future<GenerativeModel?> _getModel() async {
+
+
+
+
+  Future<GenerativeModel?> _initializeModel() async {
+    if (_model != null) return _model;
+
     final prefs = await SharedPreferences.getInstance();
-    final apiKey = prefs.getString('user_api_key');
+    String? apiKey = prefs.getString('user_api_key');
 
     if (apiKey == null || apiKey.isEmpty) {
-      print("HATA: Kullanıcı API anahtarı bulunamadı.");
+      apiKey = dotenv.env['GEMINI_API_KEY'];
+    }
+
+    if (apiKey == null || apiKey.isEmpty) {
+      print("HATA: Gemini API anahtarı ne ayarlarda ne de .env dosyasında bulunamadı.");
       return null;
     }
 
-    return GenerativeModel(
+    _model = GenerativeModel(
       model: 'gemini-1.5-flash-latest',
       apiKey: apiKey,
     );
+    return _model;
   }
+
+
+
 
   Future<String?> summarizeText(String textToSummarize) async {
-    final model = await _getModel();
-    if (model == null) return "Lütfen ayarlardan API anahtarınızı girin.";
+    final model = await _initializeModel();
+    if (model == null) return "Lütfen ayarlardan geçerli bir API anahtarı girin.";
 
     try {
-      final prompt = '...';
+      final prompt = 'Aşağıdaki metni, ana fikrini koruyarak 2-3 cümlelik akıcı bir Türkçe ile özetle:\n\n"$textToSummarize"';
       final response = await model.generateContent([Content.text(prompt)]);
       return response.text;
     } catch (e) {
-      return "API Hatası: $e";
+      print("Gemini Özetleme Hatası: $e");
+      return "Özetleme sırasında bir API hatası oluştu.";
     }
   }
 
-
-
-  Future<String?> createInstagramPost(String summary) async {
-
-    final prefs = await SharedPreferences.getInstance();
-    final apiKey = prefs.getString('user_api_key');
-
-
-    if (apiKey == null || apiKey.isEmpty) {
-
-      print("HATA: Gemini API anahtarı bulunamadı. Lütfen ayarlardan girin.");
-      return "Lütfen önce Ayarlar menüsünden API anahtarınızı girin.";
-    }
-
+  Future<String?> createInstagramPost(String rawContent) async {
+    final model = await _initializeModel();
+    if (model == null) return "Lütfen ayarlardan geçerli bir API anahtarı girin.";
 
     try {
-      final model = GenerativeModel(
-        model: 'gemini-1.5-flash-latest',
-        apiKey: apiKey,
-      );
-
       final prompt = '''
-    Aşağıdaki haber özetinden yola çıkarak, Instagram için dikkat çekici, 
-    akıcı ve genç bir dille bir gönderi metni oluştur. 
-    Metnin başına kalın harflerle (Markdown formatında **Başlık** şeklinde) çarpıcı bir başlık ekle. 
-    Metnin içinde konuyla alakalı 2-3 tane emoji kullan. 
-    Sonuna da 4-5 tane popüler ve konuyla ilgili İngilizce ve Türkçe hashtag ekle.
+      Aşağıdaki haber metninden yola çıkarak, Instagram için dikkat çekici, 
+      akıcı ve genç bir dille bir gönderi metni oluştur. 
+      Metnin başına kalın harflerle (Markdown formatında **Başlık** şeklinde) çarpıcı bir başlık ekle. 
+      Metnin içinde konuyla alakalı 2-3 tane emoji kullan. 
+      Sonuna da 4-5 tane popüler ve konuyla ilgili İngilizce ve Türkçe hashtag ekle.
 
-    Özet Metin: "$summary"
-    ''';
+      Haber Metni: "$rawContent"
+      ''';
 
       final response = await model.generateContent([Content.text(prompt)]);
       return response.text;
-
     } catch (e) {
-      print('--- GEMINI API (POST) HATASI ---');
-      print('Hata: $e');
-      print('------------------------------');
-      return 'Post metni oluşturulurken bir API hatası oluştu. Detaylar konsolda.';
+      print('Gemini Post Oluşturma Hatası: $e');
+      return 'Post metni oluşturulurken bir API hatası oluştu.';
+    }
+  }
+
+  Future<String?> translateToTurkish(String textToTranslate) async {
+    if (textToTranslate.length < 15 || textToTranslate.contains(RegExp(r'[çğıöşüÇĞİÖŞÜ]'))) {
+      return textToTranslate;
+    }
+
+    final model = await _initializeModel();
+    if (model == null) return textToTranslate;
+    try {
+      final prompt = 'Translate the following English text to natural, fluent Turkish:\n\n"$textToTranslate"';
+
+      final response = await model.generateContent([Content.text(prompt)]);
+      return response.text ?? textToTranslate;
+    } catch (e) {
+      print("Gemini Çeviri Hatası: $e");
+      return textToTranslate;
     }
   }
 }

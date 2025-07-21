@@ -1,3 +1,4 @@
+import 'package:ai_content_flow_app/features/01_setup/screens/source_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -40,26 +41,21 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
     });
   }
 
-  // SADECE BU FONKSİYON GÜNCELLENDİ
   Future<void> _saveAndNavigate() async {
-    // Kaydetme butonuna tekrar tekrar basılmasını engelle
     if (_isSaving) return;
 
     setState(() {
-      _isSaving = true; // Kaydetme animasyonunu başlat
+      _isSaving = true;
     });
 
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('user_interests', _selectedInterests.toList());
 
-
       if (mounted) {
-        // Artık HomePage'e değil, MainScreen'e yönlendiriyoruz.
-        Navigator.pushAndRemoveUntil(
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-              (Route<dynamic> route) => false,
+          MaterialPageRoute(builder: (context) => const SourceSelectionScreen()),
         );
       }
     } catch (e) {

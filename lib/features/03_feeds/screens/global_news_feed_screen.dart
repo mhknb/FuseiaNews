@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/api/PythonApiService.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_generation_service.dart';
@@ -15,40 +16,39 @@ class GlobalNewsScreen extends StatefulWidget {
   const GlobalNewsScreen({super.key});
 
   @override
-  State<GlobalNewsScreen> createState() => _GlobalNewsFeedState();
+  State<GlobalNewsScreen> createState() => _GlobalNewsScreenState();
 }
 
-class _GlobalNewsFeedState extends State<GlobalNewsScreen> {
-  // Tüm servis nesneleri ve mantık artık bu widget'ın içinde.
-  final RssService _rssService = RssService();
-  final GeminiService _geminiService = GeminiService();
-  final ImageGenerationService _imageService = ImageGenerationService();
+class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
+  final RssService _apiService = RssService();
+  final GeminiApiService _geminiService = GeminiApiService();
+  final PythonApiService _pythonApiService = PythonApiService();
+
   late Future<List<HaberModel>> _haberlerFuture;
 
   @override
   void initState() {
     super.initState();
-    // Sadece global haberleri çeken fonksiyonu çağırıyoruz.
-    _haberlerFuture = _rssService.fetchGlobalNews();
+    _haberlerFuture = _apiService.fetchGlobalNews();
   }
 
 
+
+
+
+
+
   Future<void> _summarizeAndShowPopup(HaberModel haber) async {
-    // 1. Önce özeti göstermek için yükleniyor penceresi açalım
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // 2. Gemini'den özet metnini al
-    // Özet için haberin ham açıklamasını kullanıyoruz
     final summary = await _geminiService.summarizeText(haber.description);
 
-    // 3. Yükleniyor penceresini kapat
     Navigator.pop(context);
 
-    // 4. Kullanıcıya özeti ve sonraki adımı gösteren pencereyi aç
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -63,11 +63,8 @@ class _GlobalNewsFeedState extends State<GlobalNewsScreen> {
             icon: const Icon(Icons.photo_camera),
             label: const Text('Post Oluştur'),
             onPressed: () {
-              // Özet penceresini kapat ve asıl içerik oluşturma işlemini başlat
               Navigator.pop(context);
 
-              // DİKKAT: Artık bu fonksiyona özet metni değil,
-              // haberin orijinal, ham açıklamasını yolluyoruz.
               _generatePostAndImage(haber.description, haber.title);
             },
           )
@@ -75,8 +72,13 @@ class _GlobalNewsFeedState extends State<GlobalNewsScreen> {
       ),
     );
   }
+
+
+
+
+
+
   Future<void> _generatePostAndImage(String rawContent, String title) async {
-    // Yükleniyor penceresini göster...
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -94,45 +96,32 @@ class _GlobalNewsFeedState extends State<GlobalNewsScreen> {
         ),
       ),
     );
-
     String? postText;
     Uint8List? finalImageBytes;
 
     try {
-      // 1. ADIM: Eş zamanlı olarak metni ve HAM görseli al.
       final postTextFuture = _geminiService.createInstagramPost(rawContent);
-      // Picsum'dan ham görseli alalım (bu da bir Future)
-      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/512'));
-
-      // İki işlemin de bitmesini bekle
+      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1080'));
       final results = await Future.wait([postTextFuture, rawImageFuture]);
 
       postText = results[0] as String?;
       final rawImageResponse = results[1] as http.Response;
 
-      // 2. ADIM: Ham görseli Python'a gönderip işlenmesini bekle.
       if (rawImageResponse.statusCode == 200) {
         print("Ham görsel başarıyla alındı, Python'a gönderiliyor...");
-        // processImageWithPython'ı burada çağırıyoruz.
-        // İlk parametre olarak indirdiğimiz ham görselin byte'larını,
-        // ikinci parametre olarak da haberin başlığını veriyoruz.
-        finalImageBytes = await _imageService.processImageWithPython(
+
+        finalImageBytes = await _pythonApiService.processImageWithPython(
           rawImageResponse.bodyBytes,
           title,
         );
-      } else {
+      }else {
         throw Exception('Ham görsel alınamadı. Durum Kodu: ${rawImageResponse.statusCode}');
       }
 
     } catch (e) {
       print("İçerik oluşturma akışında hata: $e");
-      // Hata durumunda postText veya finalImageBytes null kalabilir, bu normal.
     }
-
-    // Yükleniyor penceresini kapat
     Navigator.pop(context);
-
-    // 3. ADIM: Nihai sonucu kullanıcıya göster.
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -171,6 +160,10 @@ class _GlobalNewsFeedState extends State<GlobalNewsScreen> {
       ),
     );
   }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
