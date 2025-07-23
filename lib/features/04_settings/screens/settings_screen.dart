@@ -1,5 +1,3 @@
-// lib/screens/settings_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../01_setup/screens/interest_selection_screen.dart';
@@ -14,7 +12,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // Controller'lar ve Durum Değişkenleri
   final _apiKeyController = TextEditingController();
   final _youtubeUrlController = TextEditingController();
   final List<String> _youtubeChannels = [];
@@ -34,7 +31,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  // Ayarları SharedPreferences'dan yükleyen fonksiyon
+
+
+
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _apiKeyController.text = prefs.getString('user_api_key') ?? '';
@@ -45,7 +45,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  // Tüm ayarları tek seferde kaydeden fonksiyon
+
+
+
+
+
   Future<void> _saveAllSettings() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
@@ -73,7 +77,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // YouTube Kanalı Ekleme ve Silme Fonksiyonları
+
+
+
+
   void _addYoutubeChannel() {
     final url = _youtubeUrlController.text.trim();
     if (url.isNotEmpty && !_youtubeChannels.contains(url)) {
@@ -83,6 +90,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _youtubeUrlController.clear();
     }
   }
+
+
+
 
   void _removeYoutubeChannel(String url) {
     setState(() {
@@ -97,9 +107,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      // Bu ekranda kendi AppBar'ı olabilir veya MainScreen'deki kullanılabilir.
-      // Şimdilik kendi AppBar'ını koyalım ki bağımsız çalışabilsin.
-      // Eğer MainScreen'den yönetilecekse bu AppBar silinir.
       appBar: AppBar(
         title: const Text('Ayarlar'),
         elevation: 0,
@@ -124,7 +131,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // İlgi Alanları Kartı
             _buildSectionCard(
               title: 'İçerik Tercihleri',
               child: ListTile(
@@ -142,7 +148,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // YouTube Kanalları Kartı
             _buildSectionCard(
               title: 'Takip Edilen YouTube Kanalları',
               child: Column(

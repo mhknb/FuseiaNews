@@ -43,7 +43,6 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
 
 
   Future<List<HaberModel>> _loadData() async {
-    // 1. Önce haberleri ve videoları normal şekilde çek
     List<HaberModel> newsList = await _apiService.fetchPersonalizedNews();
 
     int itemsToTranslate = newsList.length > 10 ? 10 : newsList.length;
@@ -56,8 +55,6 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
         haber.title = await _geminiService.translateToTurkish(haber.title) ?? haber.title;
         haber.description = await _geminiService.translateToTurkish(haber.description) ?? haber.description;
 
-        // HER ÇEVİRİDEN SONRA KISA BİR SÜRE BEKLE!
-        // Bu, dakikadaki istek sayısını düşürür.
         await Future.delayed(const Duration(milliseconds: 500)); // Yarım saniye bekle
       }
     }
@@ -66,15 +63,17 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
 
 
 
-
-
-  // URL açma fonksiyonu (YouTube videoları için)
   Future<void> _launchURL(String url) async {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri)) {
       throw Exception('Could not lsaunch $url');
     }
   }
+
+
+
+
+
 
   Future<void> _sharePost(Uint8List imageBytes, String postText) async {
     try {

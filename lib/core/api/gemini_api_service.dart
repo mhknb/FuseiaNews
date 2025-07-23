@@ -53,15 +53,22 @@ class GeminiApiService {
     if (model == null) return "Lütfen ayarlardan geçerli bir API anahtarı girin.";
 
     try {
+      // --- YENİ VE DAHA NET PROMPT ---
+      // Yapay zekaya tam olarak ne yapması gerektiğini ve ne yapmaması gerektiğini söylüyoruz.
       final prompt = '''
-      Aşağıdaki haber metninden yola çıkarak, Instagram için dikkat çekici, 
-      akıcı ve genç bir dille bir gönderi metni oluştur. 
-      Metnin başına kalın harflerle (Markdown formatında **Başlık** şeklinde) çarpıcı bir başlık ekle. 
-      Metnin içinde konuyla alakalı 2-3 tane emoji kullan. 
-      Sonuna da 4-5 tane popüler ve konuyla ilgili İngilizce ve Türkçe hashtag ekle.
+      Your task is to act as a direct translator.
+      Translate the following English text into Turkish.
+      Provide ONLY the raw Turkish translation.
+      DO NOT add any extra text, explanations, options, titles, or formatting like "**".
 
-      Haber Metni: "$rawContent"
+      English Text:
+      """
+     $rawContent
+      """
+
+      Turkish Translation:
       ''';
+
 
       final response = await model.generateContent([Content.text(prompt)]);
       return response.text;

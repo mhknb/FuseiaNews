@@ -1,13 +1,15 @@
-// lib/screens/global_news_feed.dart
 
+
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/PythonApiService.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
-import '../../../core/api/image_generation_service.dart';
 import '../../../core/models/news_model.dart';
 
 
@@ -71,6 +73,42 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
         ],
       ),
     );
+  }
+
+
+
+  Future<void> _sharePost(Uint8List imageBytes, String postText) async {
+    try {
+      // 1. Geçici bir dizin ve dosya yolu oluştur
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/ai_generated_post.png';
+      final imageFile = File(imagePath);
+
+      // 2. Görselin byte'larını bu dosyaya yaz
+      await imageFile.writeAsBytes(imageBytes);
+
+      // 3. Dosya yolundan bir XFile nesnesi oluştur
+      final xFile = XFile(imagePath);
+
+      // 4. share_plus paketini kullanarak paylaşım menüsünü aç
+      final result = await Share.shareXFiles(
+        [xFile], // Paylaşılacak dosyaların listesi
+        text: postText, // Paylaşılacak metin
+        subject: 'AI ContentFlow ile Oluşturuldu!', // E-posta gibi uygulamalar için konu
+      );
+
+      // (Opsiyonel) Paylaşım durumunu kontrol et
+      if (result.status == ShareResultStatus.success) {
+        print('İçerik başarıyla paylaşıldı!');
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Paylaşım sırasında bir hata oluştu: $e')),
+        );
+      }
+    }
   }
 
 
@@ -149,13 +187,29 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           FilledButton.icon(
-            icon: Icon(Icons.share),
+            icon: const Icon(Icons.share),
             label: const Text('Instagramda Paylaş'),
+
+            // --- DÜZELTME VE DOLDURMA BURADA ---
             onPressed: () {
-              // TODO: Buraya 'share_plus' paketi ile paylaşma kodu gelecek.
+              // Önce paylaşılacak verilerin (görsel ve metin)
+              // null olup olmadığını kontrol ediyoruz.
+              if (finalImageBytes != null && postText != null) {
+                // Eğer veriler mevcutsa, daha önce yazdığımız
+                // _sharePost fonksiyonunu çağırıyoruz.
+                _sharePost(finalImageBytes, postText);
+              } else {
+                // Eğer bir sorun olduysa ve verilerden biri null ise,
+                // kullanıcıya bir hata mesajı gösteriyoruz.
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Paylaşılacak içerik üretilemedi, lütfen tekrar deneyin.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
           ),
-
         ],
       ),
     );

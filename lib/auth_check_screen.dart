@@ -21,16 +21,13 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   }
 
   Future<void> _checkSetupStatusAndNavigate() async {
-    // Arayüzün oturması için küçük bir gecikme eklemek,
-    // "yanıp sönme" (flash) efektini engeller.
     await Future.delayed(const Duration(milliseconds: 1500));
 
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString('user_api_key');
     final bool isSetupComplete = apiKey != null && apiKey.isNotEmpty;
 
-    // `mounted` kontrolü, yönlendirme yapılmadan önce widget'ın
-    // hala ekranda olduğundan emin olmak için iyi bir pratiktir.
+
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -45,15 +42,11 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Kontroller yapılırken ekranda bir logo veya yüklenme animasyonu göster
     return const Scaffold(
       body: Center(
-        // Buraya kendi uygulama logonun widget'ını koyabilirsin
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon(Icons.hub_rounded, size: 80),
-            // SizedBox(height: 20),
             CircularProgressIndicator(),
           ],
         ),
