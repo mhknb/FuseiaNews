@@ -126,46 +126,93 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
 
 
   Future<void> _generatePostAndImage(String rawContent, String title) async {
-    showDialog(context: context, barrierDismissible: false, builder: (context) => const Dialog(child: Padding(padding: EdgeInsets.all(20.0), child: Row(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(width: 20), Text("İçerikler Üretiliyor...")]))));
-    String? postText;
-    Uint8List? finalImageBytes;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Dialog(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text("İçerikler Üretiliyor..."),
+          ]),
+        ),
+      ),
+    );
+
+    String? postTextForSharing;
+    Uint8List? finalTemplatedImage;
+
     try {
       final postTextFuture = _geminiService.createInstagramPost(rawContent);
-      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1080'));
+      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1000'));
       final results = await Future.wait([postTextFuture, rawImageFuture]);
-      postText = results[0] as String?;
+
+      postTextForSharing = results[0] as String?;
       final rawImageResponse = results[1] as http.Response;
-      if (rawImageResponse.statusCode == 200) {
-        finalImageBytes = await _pythonApiService.processImageWithPython(rawImageResponse.bodyBytes, title);
+
+      if (rawImageResponse.statusCode == 200 && postTextForSharing != null) {
+        print("Ham görsel alındı, şablona işlenmesi için Python'a gönderiliyor...");
+
+
+        finalTemplatedImage = await _pythonApiService.createPostWithTemplate(
+          rawImageBytes: rawImageResponse.bodyBytes,
+          title: title,
+          content: rawContent, // Konu metnini de gönderiyoruz
+        );
       } else {
-        throw Exception('Ham görsel alınamadı. Kod: ${rawImageResponse.statusCode}');
+        throw Exception('Ham görsel veya Instagram metni alınamadı.');
       }
     } catch (e) {
       print("İçerik oluşturma akışında hata: $e");
     }
+
     if (!mounted) return;
     Navigator.pop(context);
 
+    // 3. ADIM: Nihai sonucu kullanıcıya göster
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Paylaşıma Hazır!"),
-        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [if (finalImageBytes != null) ClipRRect(borderRadius: BorderRadius.circular(8.0), child: Image.memory(finalImageBytes)) else const Icon(Icons.error_outline, color: Colors.red, size: 50), const SizedBox(height: 16), Text(postText ?? "Metin üretilemedi.")])),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // finalTemplatedImage artık Python'dan gelen şablonlu görsel
+              if (finalTemplatedImage != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: Image.memory(finalTemplatedImage),
+                )
+              else
+                const Icon(Icons.error_outline, color: Colors.red, size: 50),
+
+              const SizedBox(height: 16),
+              // Paylaşılacak olan Instagram metnini de gösterelim (opsiyonel)
+              Text(
+                "Paylaşılacak Metin:\n${postTextForSharing ?? "Metin üretilemedi."}",
+                style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Kapat')),
           FilledButton.icon(
             icon: const Icon(Icons.share),
-            label: const Text('Instagramda Paylaş'),
+            label: const Text('Paylaş'),
             onPressed: () {
-              if (finalImageBytes != null && postText != null) _sharePost(finalImageBytes, postText);
-              else ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paylaşılacak içerik bulunamadı!')));
+              if (finalTemplatedImage != null && postTextForSharing != null) {
+                _sharePost(finalTemplatedImage, postTextForSharing);
+              }
             },
           ),
         ],
       ),
     );
   }
-
 
 
 

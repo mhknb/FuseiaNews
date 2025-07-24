@@ -1,0 +1,2 @@
+Flask
+Pillow  # For image processing

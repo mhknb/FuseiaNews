@@ -78,37 +78,7 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
 
 
   Future<void> _sharePost(Uint8List imageBytes, String postText) async {
-    try {
-      // 1. Geçici bir dizin ve dosya yolu oluştur
-      final directory = await getTemporaryDirectory();
-      final imagePath = '${directory.path}/ai_generated_post.png';
-      final imageFile = File(imagePath);
 
-      // 2. Görselin byte'larını bu dosyaya yaz
-      await imageFile.writeAsBytes(imageBytes);
-
-      // 3. Dosya yolundan bir XFile nesnesi oluştur
-      final xFile = XFile(imagePath);
-
-      // 4. share_plus paketini kullanarak paylaşım menüsünü aç
-      final result = await Share.shareXFiles(
-        [xFile], // Paylaşılacak dosyaların listesi
-        text: postText, // Paylaşılacak metin
-        subject: 'AI ContentFlow ile Oluşturuldu!', // E-posta gibi uygulamalar için konu
-      );
-
-      // (Opsiyonel) Paylaşım durumunu kontrol et
-      if (result.status == ShareResultStatus.success) {
-        print('İçerik başarıyla paylaşıldı!');
-      }
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Paylaşım sırasında bir hata oluştu: $e')),
-        );
-      }
-    }
   }
 
 
@@ -123,43 +93,48 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
       builder: (context) => const Dialog(
         child: Padding(
           padding: EdgeInsets.all(20.0),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 20),
-              Text("İçerikler Üretiliyor..."),
-            ],
-          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text("İçerikler Üretiliyor..."),
+          ]),
         ),
       ),
     );
-    String? postText;
-    Uint8List? finalImageBytes;
+
+    String? postTextForSharing; // Instagram metni (bu değişmedi)
+    Uint8List? finalTemplatedImage; // Şablonlu nihai görsel
 
     try {
+      // 1. ADIM: Metin ve ham görseli eş zamanlı olarak al
       final postTextFuture = _geminiService.createInstagramPost(rawContent);
-      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1080'));
+      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1080')); // 1080x1080
       final results = await Future.wait([postTextFuture, rawImageFuture]);
 
-      postText = results[0] as String?;
+      postTextForSharing = results[0] as String?;
       final rawImageResponse = results[1] as http.Response;
 
-      if (rawImageResponse.statusCode == 200) {
-        print("Ham görsel başarıyla alındı, Python'a gönderiliyor...");
+      // 2. ADIM: Ham görseli ve metinleri Python'a gönder
+      if (rawImageResponse.statusCode == 200 && postTextForSharing != null) {
+        print("Ham görsel alındı, şablona işlenmesi için Python'a gönderiliyor...");
 
-        finalImageBytes = await _pythonApiService.processImageWithPython(
-          rawImageResponse.bodyBytes,
-          title,
+        // YENİ SERVİS FONKSİYONUNU ÇAĞIRIYORUZ
+        finalTemplatedImage = await _pythonApiService.createPostWithTemplate(
+          rawImageBytes: rawImageResponse.bodyBytes,
+          title: title, // Haberin orijinal başlığı
+          content: rawContent, // Haberin orijinal içeriği/açıklaması
         );
-      }else {
-        throw Exception('Ham görsel alınamadı. Durum Kodu: ${rawImageResponse.statusCode}');
+      } else {
+        throw Exception('Ham görsel veya Instagram metni alınamadı.');
       }
-
     } catch (e) {
       print("İçerik oluşturma akışında hata: $e");
     }
-    Navigator.pop(context);
+
+    if (!mounted) return;
+    Navigator.pop(context); // Yükleniyor penceresini kapat
+
+    // 3. ADIM: Nihai sonucu kullanıcıya göster
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -168,45 +143,32 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // finalImageBytes artık Python'dan gelen işlenmiş görseldir
-              if (finalImageBytes != null)
+              // finalTemplatedImage artık Python'dan gelen şablonlu görsel
+              if (finalTemplatedImage != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
-                  child: Image.memory(finalImageBytes),
+                  child: Image.memory(finalTemplatedImage),
                 )
               else
                 const Icon(Icons.error_outline, color: Colors.red, size: 50),
+
               const SizedBox(height: 16),
-              Text(postText ?? "Metin üretilemedi."),
+              // Paylaşılacak olan Instagram metnini de gösterelim (opsiyonel)
+              Text(
+                "Paylaşılacak Metin:\n${postTextForSharing ?? "Metin üretilemedi."}",
+                style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            child: const Text('Kapat'),
-            onPressed: () => Navigator.pop(context),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Kapat')),
           FilledButton.icon(
             icon: const Icon(Icons.share),
-            label: const Text('Instagramda Paylaş'),
-
-            // --- DÜZELTME VE DOLDURMA BURADA ---
+            label: const Text('Paylaş'),
             onPressed: () {
-              // Önce paylaşılacak verilerin (görsel ve metin)
-              // null olup olmadığını kontrol ediyoruz.
-              if (finalImageBytes != null && postText != null) {
-                // Eğer veriler mevcutsa, daha önce yazdığımız
-                // _sharePost fonksiyonunu çağırıyoruz.
-                _sharePost(finalImageBytes, postText);
-              } else {
-                // Eğer bir sorun olduysa ve verilerden biri null ise,
-                // kullanıcıya bir hata mesajı gösteriyoruz.
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Paylaşılacak içerik üretilemedi, lütfen tekrar deneyin.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+              if (finalTemplatedImage != null && postTextForSharing != null) {
+                _sharePost(finalTemplatedImage, postTextForSharing);
               }
             },
           ),
