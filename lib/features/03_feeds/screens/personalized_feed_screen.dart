@@ -22,10 +22,12 @@ class PersonalizedFeedScreen extends StatefulWidget {
 }
 
 class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
-  final RssService _apiService = RssService();
+  // Servisleri doğru isimleriyle tanımla
+  final ApiService _apiService = ApiService();
   final GeminiApiService _geminiService = GeminiApiService();
   final PythonApiService _pythonApiService = PythonApiService();
   late Future<List<HaberModel>> _haberlerFuture;
+  String _loadingStatus = 'Haberler çekiliyor...';
 
   @override
   void initState() {
@@ -39,41 +41,44 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     });
   }
 
-
-
-
   Future<List<HaberModel>> _loadData() async {
+    if (mounted) setState(() => _loadingStatus = 'Kişisel kaynaklar taranıyor...');
     List<HaberModel> newsList = await _apiService.fetchPersonalizedNews();
 
-    int itemsToTranslate = newsList.length > 10 ? 10 : newsList.length;
+    if (newsList.isEmpty) {
+      return []; // Çekilecek haber yoksa hemen bitir.
+    }
 
-    for (int i = 0; i < itemsToTranslate; i++) {
-      var haber = newsList[i];
-      if (!haber.isYoutubeVideo) {
-        print("Çevriliyor biraz bekle: ${haber.title}");
+    if (mounted) setState(() => _loadingStatus = 'Haberler çevriliyor (Bu işlem biraz sürebilir)...');
 
+    // Çevrilecek haber sayısını 5 ile sınırlayalım ki ilk açılış hızlı olsun.
+    int itemsToTranslateCount = newsList.where((h) => !h.isYoutubeVideo).length;
+    int itemsToProcess = itemsToTranslateCount > 5 ? 5 : itemsToTranslateCount;
+    int translatedCount = 0;
+
+    for (var haber in newsList) {
+      // Sadece RSS haberlerini çevir ve limiti aşmadıysak çevir.
+      if (!haber.isYoutubeVideo && translatedCount < itemsToProcess) {
+        translatedCount++;
+        if (mounted) setState(() => _loadingStatus = '$translatedCount/$itemsToProcess haber çevriliyor...');
+
+        // --- ANA DEĞİŞİKLİK BURADA ---
+        // Önce başlığı çevir, sonra 1.1 saniye bekle.
         haber.title = await _geminiService.translateToTurkish(haber.title) ?? haber.title;
-        haber.description = await _geminiService.translateToTurkish(haber.description) ?? haber.description;
+        await Future.delayed(const Duration(milliseconds: 1100)); // 60 RPM limitini aşmamak için
 
-        await Future.delayed(const Duration(milliseconds: 500)); // Yarım saniye bekle
+        // Sonra açıklamayı çevir, sonra yine bekle.
+        haber.description = await _geminiService.translateToTurkish(haber.description) ?? haber.description;
+        await Future.delayed(const Duration(milliseconds: 1100)); // 60 RPM limitini aşmamak için
       }
     }
     return newsList;
   }
 
-
-
   Future<void> _launchURL(String url) async {
     final uri = Uri.parse(url);
-    if (!await launchUrl(uri)) {
-      throw Exception('Could not lsaunch $url');
-    }
+    if (!await launchUrl(uri)) throw Exception('Could not launch $url');
   }
-
-
-
-
-
 
   Future<void> _sharePost(Uint8List imageBytes, String postText) async {
     try {
@@ -87,11 +92,6 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Paylaşım sırasında bir hata oluştu: $e')));
     }
   }
-
-
-
-
-
 
 
   Future<void> _summarizeAndShowPopup(HaberModel haber) async {
@@ -126,40 +126,21 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
 
 
   Future<void> _generatePostAndImage(String rawContent, String title) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Dialog(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text("İçerikler Üretiliyor..."),
-          ]),
-        ),
-      ),
-    );
-
+    showDialog(context: context, barrierDismissible: false, builder: (context) => const Dialog(child: Padding(padding: EdgeInsets.all(20.0), child: Row(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(width: 20), Text("İçerikler Üretiliyor...")]))));
     String? postTextForSharing;
     Uint8List? finalTemplatedImage;
-
     try {
       final postTextFuture = _geminiService.createInstagramPost(rawContent);
-      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1000'));
+      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1080'));
       final results = await Future.wait([postTextFuture, rawImageFuture]);
-
       postTextForSharing = results[0] as String?;
       final rawImageResponse = results[1] as http.Response;
-
       if (rawImageResponse.statusCode == 200 && postTextForSharing != null) {
         print("Ham görsel alındı, şablona işlenmesi için Python'a gönderiliyor...");
-
-
         finalTemplatedImage = await _pythonApiService.createPostWithTemplate(
           rawImageBytes: rawImageResponse.bodyBytes,
           title: title,
-          content: rawContent, // Konu metnini de gönderiyoruz
+          content: rawContent,
         );
       } else {
         throw Exception('Ham görsel veya Instagram metni alınamadı.');
@@ -167,56 +148,15 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     } catch (e) {
       print("İçerik oluşturma akışında hata: $e");
     }
-
     if (!mounted) return;
     Navigator.pop(context);
-
-    // 3. ADIM: Nihai sonucu kullanıcıya göster
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+    showDialog(context: context, builder: (context) => AlertDialog(
         title: const Text("Paylaşıma Hazır!"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // finalTemplatedImage artık Python'dan gelen şablonlu görsel
-              if (finalTemplatedImage != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: Image.memory(finalTemplatedImage),
-                )
-              else
-                const Icon(Icons.error_outline, color: Colors.red, size: 50),
-
-              const SizedBox(height: 16),
-              // Paylaşılacak olan Instagram metnini de gösterelim (opsiyonel)
-              Text(
-                "Paylaşılacak Metin:\n${postTextForSharing ?? "Metin üretilemedi."}",
-                style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-              ),
-            ],
-          ),
-        ),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [if (finalTemplatedImage != null) ClipRRect(borderRadius: BorderRadius.circular(8.0), child: Image.memory(finalTemplatedImage)) else const Icon(Icons.error_outline, color: Colors.red, size: 50), const SizedBox(height: 16), Text("Paylaşılacak Metin:\n${postTextForSharing ?? "Metin üretilemedi."}", style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic))])),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Kapat')),
-          FilledButton.icon(
-            icon: const Icon(Icons.share),
-            label: const Text('Paylaş'),
-            onPressed: () {
-              if (finalTemplatedImage != null && postTextForSharing != null) {
-                _sharePost(finalTemplatedImage, postTextForSharing);
-              }
-            },
-          ),
-        ],
-      ),
-    );
+          FilledButton.icon(icon: const Icon(Icons.share), label: const Text('Paylaş'), onPressed: () { if (finalTemplatedImage != null && postTextForSharing != null) _sharePost(finalTemplatedImage, postTextForSharing); })]));
   }
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +164,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
       future: _haberlerFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const CircularProgressIndicator(), const SizedBox(height: 20), Text(_loadingStatus)]));
         } else if (snapshot.hasError) {
           return Center(child: Text('Hata: ${snapshot.error}'));
         } else if (snapshot.hasData && snapshot.data!.isEmpty) {
@@ -238,7 +178,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
                   const SizedBox(height: 16),
                   const Text('İçerik Bulunamadı', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                   const SizedBox(height: 8),
-                  const Text('Lütfen Ayarlar\'dan ilgi alanlarınızı ve kaynaklarınızı kontrol edin.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                  const Text('Lütfen Ayarlar\'dan kaynaklarınızı kontrol edin veya yeni kaynaklar ekleyin.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.settings),
@@ -257,10 +197,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
             itemCount: haberler.length,
             itemBuilder: (context, index) {
               final haber = haberler[index];
-              // Gelen verinin tipine göre farklı kart göster
-              return haber.isYoutubeVideo
-                  ? _buildYoutubeVideoCard(haber)
-                  : _buildNewsCard(haber);
+              return haber.isYoutubeVideo ? _buildYoutubeVideoCard(haber) : _buildNewsCard(haber);
             },
           );
         } else {
@@ -269,6 +206,8 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
       },
     );
   }
+
+
 
   // --- YARDIMCI KART WIDGET'LARI ---
   Widget _buildNewsCard(HaberModel haber) {

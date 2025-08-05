@@ -33,49 +33,21 @@ class GeminiApiService {
 
 
 
-
   Future<String?> summarizeText(String textToSummarize) async {
-    final model = await _initializeModel();
-    if (model == null) return "Lütfen ayarlardan geçerli bir API anahtarı girin.";
-
-    try {
-      final prompt = 'Aşağıdaki metni, ana fikrini koruyarak 2-3 cümlelik akıcı bir Türkçe ile özetle:\n\n"$textToSummarize"';
-      final response = await model.generateContent([Content.text(prompt)]);
-      return response.text;
-    } catch (e) {
-      print("Gemini Özetleme Hatası: $e");
-      return "Özetleme sırasında bir API hatası oluştu.";
-    }
+    return _callGenerativeApi(
+        'Aşağıdaki metni, ana fikrini koruyarak 2-3 cümlelik akıcı bir Türkçe ile özetle:\n\n"$textToSummarize"',
+        "Özetleme"
+    );
   }
 
   Future<String?> createInstagramPost(String rawContent) async {
-    final model = await _initializeModel();
-    if (model == null) return "Lütfen ayarlardan geçerli bir API anahtarı girin.";
-
-    try {
-      // --- YENİ VE DAHA NET PROMPT ---
-      // Yapay zekaya tam olarak ne yapması gerektiğini ve ne yapmaması gerektiğini söylüyoruz.
-      final prompt = '''
-      Your task is to act as a direct translator.
-      Translate the following English text into Turkish.
-      Provide ONLY the raw Turkish translation.
-      DO NOT add any extra text, explanations, options, titles, or formatting like "**".
-
-      English Text:
-      """
-     $rawContent
-      """
-
-      Turkish Translation:
-      ''';
-
-
-      final response = await model.generateContent([Content.text(prompt)]);
-      return response.text;
-    } catch (e) {
-      print('Gemini Post Oluşturma Hatası: $e');
-      return 'Post metni oluşturulurken bir API hatası oluştu.';
-    }
+    return _callGenerativeApi(
+        '''
+      Aşağıdaki haber metninden yola çıkarak, Instagram için dikkat çekici...
+      Haber Metni: "$rawContent"
+      ''',
+        "Post Oluşturma"
+    );
   }
 
   Future<String?> translateToTurkish(String textToTranslate) async {
@@ -83,16 +55,42 @@ class GeminiApiService {
       return textToTranslate;
     }
 
-    final model = await _initializeModel();
-    if (model == null) return textToTranslate;
-    try {
-      final prompt = 'Translate the following English text to natural, fluent Turkish:\n\n"$textToTranslate"';
+    final result = await _callGenerativeApi(
+        'Translate the following English text to natural, fluent Turkish:\n\n"$textToTranslate"',
+        "Çeviri"
+    );
+    return result ?? textToTranslate;
+  }
 
-      final response = await model.generateContent([Content.text(prompt)]);
-      return response.text ?? textToTranslate;
-    } catch (e) {
-      print("Gemini Çeviri Hatası: $e");
-      return textToTranslate;
+  Future<String?> _callGenerativeApi(String prompt, String taskName, {int retries = 3}) async {
+    final model = await _initializeModel();
+    if (model == null) return "API Anahtarı bulunamadı.";
+
+    int attempt = 0;
+    while (attempt < retries) {
+      try {
+        final response = await model.generateContent([Content.text(prompt)]);
+        return response.text;
+      } on GenerativeAIException catch (e) {
+        if (e.message.contains('overloaded') || e.message.contains('503')) {
+          attempt++;
+          if (attempt >= retries) {
+            print("Gemini $taskName Hatası: Model aşırı yüklendi, deneme limitine ulaşıldı.");
+            return null;
+          }
+
+          final delay = Duration(seconds: 1 << (attempt - 1));
+          print("Gemini $taskName Hatası: Model meşgul. $delay sonra tekrar denenecek... ($attempt/$retries)");
+          await Future.delayed(delay);
+        } else {
+          print("Gemini $taskName Hatası (Tekrar Denenmeyecek): $e");
+          return null; // veya bir hata mesajı
+        }
+      } catch (e) {
+        print("Genel $taskName Hatası: $e");
+        return null;
+      }
     }
+    return null;
   }
 }

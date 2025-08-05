@@ -1,11 +1,8 @@
-import 'package:ai_content_flow_app/features/01_setup/screens/source_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 import '../../02_main_navigation/screens/main_screen.dart';
-
-
-
 
 class InterestSelectionScreen extends StatefulWidget {
   const InterestSelectionScreen({super.key});
@@ -14,15 +11,20 @@ class InterestSelectionScreen extends StatefulWidget {
   State<InterestSelectionScreen> createState() => _InterestSelectionScreenState();
 }
 
+
 class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
+
+
   final List<String> _allInterests = [
     'Teknoloji', 'Bilim', 'Yapay Zeka', 'Spor', 'Sağlık',
     'Finans', 'Oyun', 'Sinema', 'Gündem', 'Eğitim',
   ];
 
+
   final Set<String> _selectedInterests = {};
+
   bool _isLoading = true;
-  bool _isSaving = false; // Kaydetme işlemi için yeni bir durum değişkeni
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -30,18 +32,24 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
     _loadSelectedInterests();
   }
 
+  /// Cihaz hafızasından daha önce kaydedilmiş ilgi alanlarını yükler.
   Future<void> _loadSelectedInterests() async {
     final prefs = await SharedPreferences.getInstance();
     final savedInterests = prefs.getStringList('user_interests');
     if (savedInterests != null) {
+
+      _selectedInterests.clear();
       _selectedInterests.addAll(savedInterests);
     }
+
     setState(() {
       _isLoading = false;
     });
   }
 
+  /// Kullanıcının seçtiği ilgi alanlarını kaydeder ve ana ekrana yönlendirir.
   Future<void> _saveAndNavigate() async {
+    // Eğer zaten kaydetme işlemi devam ediyorsa, tekrar basılmasını engelle
     if (_isSaving) return;
 
     setState(() {
@@ -52,14 +60,15 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('user_interests', _selectedInterests.toList());
 
+
       if (mounted) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const SourceSelectionScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+              (Route<dynamic> route) => false, // Tüm geçmiş ekranları temizle
         );
       }
     } catch (e) {
-      // Hata olursa kullanıcıyı bilgilendir
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -69,9 +78,10 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
         );
       }
     } finally {
+      // İşlem başarılı da olsa, başarısız da olsa yüklenme animasyonunu durdur.
       if (mounted) {
         setState(() {
-          _isSaving = false; // Kaydetme animasyonunu durdur
+          _isSaving = false;
         });
       }
     }
@@ -80,25 +90,16 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar'daki actions kısmını sildik
       appBar: AppBar(
-        title: const Text('İlgi Alanlarınızı Seçin',
-        style: TextStyle(
-          fontSize: 25,
-          fontWeight: FontWeight.bold,
-        )),
-
-
-        automaticallyImplyLeading: false,
+        title: const Text('İlgi Alanlarınızı Seçin'),
+        automaticallyImplyLeading: false, // Geri tuşunu gizle
       ),
-      // Alt tarafa sabit bir buton eklemek için Column ve Expanded kullanıyoruz
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24), // Alt boşluğu artırdım
         child: Column(
           children: [
-            // Sayfanın içeriği Expanded içine alınır ki kalan boşluğu doldursun
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -109,14 +110,14 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Seçimleriniz, haber akışınızı kişiselleştirmek için kullanılacaktır. Birden fazla seçim yapabilirsiniz.',
-                      style: TextStyle(color: Colors.grey),
+                    Text(
+                      'Seçimleriniz, "Sana Özel" akışınızı oluşturmak için kullanılacaktır. Daha sonra ayarlardan değiştirebilirsiniz.',
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Wrap(
-                      spacing: 8.0,
-                      runSpacing: 8.0,
+                      spacing: 12.0, // Çipler arası boşluk
+                      runSpacing: 12.0,
                       children: _allInterests.map((interest) {
                         final isSelected = _selectedInterests.contains(interest);
                         return FilterChip(
@@ -131,11 +132,7 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
                               }
                             });
                           },
-                          selectedColor: Theme.of(context).colorScheme.primary,
-                          checkmarkColor: Colors.white,
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : null,
-                          ),
+                          // Tema'dan gelen renkleri kullanır
                         );
                       }).toList(),
                     ),
@@ -143,23 +140,22 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
                 ),
               ),
             ),
-            // Sayfanın en altına sabitlenecek buton
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 onPressed: _isSaving ? null : _saveAndNavigate,
                 child: _isSaving
                     ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
                 )
-                    : const Text('Kaydet ve Devam Et'),
+                    : const Text('Kaydet ve Başla'),
               ),
             ),
           ],

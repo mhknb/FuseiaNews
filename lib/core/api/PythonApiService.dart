@@ -1,5 +1,4 @@
-// lib/core/api/PythonApiService.dart (TAM VE SON HALİ)
-
+import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
@@ -11,26 +10,19 @@ class PythonApiService {
     required String title,
     required String content,
   }) async {
-    // --- EN ÖNEMLİ KISIM: DOĞRU KAPIYI ÇALIYORUZ ---
-    final url = Uri.parse('$_baseUrl/create-post-image');
-
+      final url = Uri.parse('$_baseUrl/create-post-image');
     try {
       print("Python backend'ine istek gönderiliyor: $url");
-
       var request = http.MultipartRequest('POST', url);
-
       request.fields['title'] = title;
       request.fields['content'] = content;
-
       request.files.add(http.MultipartFile.fromBytes(
         'background_image',
         rawImageBytes,
         filename: 'background.png',
       ));
-
       final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
       final response = await http.Response.fromStream(streamedResponse);
-
       if (response.statusCode == 200) {
         print("Şablonlu görsel Python'dan başarıyla alındı!");
         return response.bodyBytes;

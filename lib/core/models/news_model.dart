@@ -9,6 +9,7 @@ class HaberModel {
   final String? thumbnailUrl;
   final String sourceName;
   final String? sourceIconUrl;
+  final String? imageUrl;
 
   HaberModel({
     required this.title,
@@ -20,5 +21,6 @@ class HaberModel {
     this.thumbnailUrl,
     required this.sourceName,
     this.sourceIconUrl,
+    this.imageUrl,
   });
 }

@@ -22,7 +22,7 @@ class GlobalNewsScreen extends StatefulWidget {
 }
 
 class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
-  final RssService _apiService = RssService();
+  final ApiService _apiService = ApiService();
   final GeminiApiService _geminiService = GeminiApiService();
   final PythonApiService _pythonApiService = PythonApiService();
 
@@ -189,47 +189,91 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Hata: ${snapshot.error}', textAlign: TextAlign.center),
-            ),
-          );
+          return Center(child: Text('Hata: ${snapshot.error}'));
         } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
           final haberler = snapshot.data!;
           return ListView.builder(
+            padding: const EdgeInsets.all(8.0), // Liste etrafında boşluk
             itemCount: haberler.length,
             itemBuilder: (context, index) {
               final haber = haberler[index];
-              return Card(
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
-                  title: Text(haber.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      haber.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.auto_awesome, color: Colors.amber),
-                    tooltip: 'AI ile İçerik Oluştur',
-                    onPressed: () {
-                      _summarizeAndShowPopup(haber);
-                    },
-                  ),
-                ),
-              );
+              // Artık ListTile yerine yeni _buildNewsCard widget'ımızı çağırıyoruz
+              return _buildNewsCard(haber);
             },
           );
         } else {
           return const Center(child: Text('Gösterilecek haber bulunamadı.'));
         }
       },
+    );
+  }
+
+  // --- YENİ, RESİMLİ KART TASARIMI ---
+  Widget _buildNewsCard(HaberModel haber) {
+    return Card(
+      clipBehavior: Clip.antiAlias, // Resmin kartın köşelerinden taşmasını engeller
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: InkWell(
+        onTap: () => _summarizeAndShowPopup(haber),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- SOL TARAFTAKİ GÖRSEL ---
+            // Eğer haberin görseli varsa onu, yoksa kaynak logosunu göster
+            SizedBox(
+              width: 120, // Resim genişliği
+              height: 140, // Resim yüksekliği
+              child: Image.network(
+                haber.imageUrl ?? haber.sourceIconUrl ?? '', // Ana resim > ikon > boş
+                fit: BoxFit.cover,
+                // Resim yüklenirken veya hata verdiğinde ne olacağı
+                loadingBuilder: (context, child, progress) =>
+                progress == null ? child : const Center(child: CircularProgressIndicator()),
+                errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+              ),
+            ),
+
+            // --- SAĞ TARAFTAKİ METİN İÇERİĞİ ---
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Kaynak Adı
+                    Text(
+                      haber.sourceName.toUpperCase(),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary, // Altın rengi
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Haber Başlığı
+                    Text(
+                      haber.title,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, height: 1.3),
+                    ),
+                    const SizedBox(height: 10),
+                    // AI İkonu
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: Icon(Icons.auto_awesome, color: Theme.of(context).colorScheme.secondary.withOpacity(0.8)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

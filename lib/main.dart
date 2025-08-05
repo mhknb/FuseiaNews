@@ -17,8 +17,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Renk paletimizi tanımlayalım
-    const Color primaryColor = Color(0xFF4B0082); // Koyu Mor (Indigo yerine)
-    const Color secondaryColor = Color(0xFFDAA520); // Altın Sarısı
+    const Color primaryColor = Colors.indigo; // Koyu Mor (Indigo yerine)
+    const Color secondaryColor = Colors.indigoAccent; // Altın Sarısı
     const Color darkBackgroundColor = Color(0xFF121212); // Koyu Arka Plan
 
     return MaterialApp(
@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           primary: primaryColor,
           secondary: secondaryColor,
           background: darkBackgroundColor,
-          surface: Colors.grey[850], // Kartların rengi için hafif açık bir ton
+          surface: Color(0xFF121212), // Kartların rengi için hafif açık bir ton
         ),
 
 

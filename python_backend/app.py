@@ -9,6 +9,8 @@ app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 
 
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -54,8 +56,8 @@ def create_post_image(background_bytes, title_text, content_text):
         font_content = ImageFont.truetype(FONT_PATH, size=50)
 
         # Başlığı yaz (Beyaz renk, siyah dış çizgi ile)
-        title_box = (60, 60, 1020, 200) 
-        draw.text((title_box[0], title_box[1]), title_text, font=font_title, fill="white", stroke_width=2, stroke_fill="black")
+        title_box = (40, 40, 850, 100)  # Başlık kutusu koordinatları
+        draw.text((title_box[0], title_box[1]), title_text, font=font_title, fill="white", stroke_width=1, stroke_fill="black")  
 
         
         lines = textwrap.wrap(content_text, width=38) 
