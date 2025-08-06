@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../../../core/api/PythonApiService.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
@@ -22,12 +20,12 @@ class PersonalizedFeedScreen extends StatefulWidget {
 }
 
 class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
-  // Servisleri doğru isimleriyle tanımla
+
   final ApiService _apiService = ApiService();
   final GeminiApiService _geminiService = GeminiApiService();
   final PythonApiService _pythonApiService = PythonApiService();
   late Future<List<HaberModel>> _haberlerFuture;
-  String _loadingStatus = 'Haberler çekiliyor...';
+  String _loadingStatus = 'Kişisel akışınız hazırlanıyor...';
 
   @override
   void initState() {
@@ -43,42 +41,23 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
 
   Future<List<HaberModel>> _loadData() async {
     if (mounted) setState(() => _loadingStatus = 'Kişisel kaynaklar taranıyor...');
+    // Artık bu fonksiyon sadece RSS/Atom kaynaklarını çekecek
     List<HaberModel> newsList = await _apiService.fetchPersonalizedNews();
+    if (newsList.isEmpty) return [];
 
-    if (newsList.isEmpty) {
-      return []; // Çekilecek haber yoksa hemen bitir.
-    }
-
-    if (mounted) setState(() => _loadingStatus = 'Haberler çevriliyor (Bu işlem biraz sürebilir)...');
-
-    // Çevrilecek haber sayısını 5 ile sınırlayalım ki ilk açılış hızlı olsun.
-    int itemsToTranslateCount = newsList.where((h) => !h.isYoutubeVideo).length;
-    int itemsToProcess = itemsToTranslateCount > 5 ? 5 : itemsToTranslateCount;
-    int translatedCount = 0;
-
-    for (var haber in newsList) {
-      // Sadece RSS haberlerini çevir ve limiti aşmadıysak çevir.
-      if (!haber.isYoutubeVideo && translatedCount < itemsToProcess) {
-        translatedCount++;
-        if (mounted) setState(() => _loadingStatus = '$translatedCount/$itemsToProcess haber çevriliyor...');
-
-        // --- ANA DEĞİŞİKLİK BURADA ---
-        // Önce başlığı çevir, sonra 1.1 saniye bekle.
-        haber.title = await _geminiService.translateToTurkish(haber.title) ?? haber.title;
-        await Future.delayed(const Duration(milliseconds: 1100)); // 60 RPM limitini aşmamak için
-
-        // Sonra açıklamayı çevir, sonra yine bekle.
-        haber.description = await _geminiService.translateToTurkish(haber.description) ?? haber.description;
-        await Future.delayed(const Duration(milliseconds: 1100)); // 60 RPM limitini aşmamak için
-      }
+    if (mounted) setState(() => _loadingStatus = 'Haberler çevriliyor...');
+    int itemsToProcess = newsList.length > 5 ? 5 : newsList.length;
+    for (int i = 0; i < itemsToProcess; i++) {
+      var haber = newsList[i];
+      if (mounted) setState(() => _loadingStatus = '${i + 1}/$itemsToProcess haber çevriliyor...');
+      haber.title = await _geminiService.translateToTurkish(haber.title) ?? haber.title;
+      haber.description = await _geminiService.translateToTurkish(haber.description) ?? haber.description;
+      await Future.delayed(const Duration(milliseconds: 1100));
     }
     return newsList;
   }
 
-  Future<void> _launchURL(String url) async {
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri)) throw Exception('Could not launch $url');
-  }
+
 
   Future<void> _sharePost(Uint8List imageBytes, String postText) async {
     try {
@@ -92,7 +71,6 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Paylaşım sırasında bir hata oluştu: $e')));
     }
   }
-
 
   Future<void> _summarizeAndShowPopup(HaberModel haber) async {
     showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator()));
@@ -119,9 +97,6 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
       ),
     );
   }
-
-
-
 
 
 
@@ -158,6 +133,21 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
           FilledButton.icon(icon: const Icon(Icons.share), label: const Text('Paylaş'), onPressed: () { if (finalTemplatedImage != null && postTextForSharing != null) _sharePost(finalTemplatedImage, postTextForSharing); })]));
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<HaberModel>>(
@@ -168,37 +158,18 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
         } else if (snapshot.hasError) {
           return Center(child: Text('Hata: ${snapshot.error}'));
         } else if (snapshot.hasData && snapshot.data!.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.interests_rounded, size: 60, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  const Text('İçerik Bulunamadı', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                  const SizedBox(height: 8),
-                  const Text('Lütfen Ayarlar\'dan kaynaklarınızı kontrol edin veya yeni kaynaklar ekleyin.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.settings),
-                    label: const Text('Ayarları Aç'),
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())).then((_) => _fetchAndTranslateNews());
-                    },
-                  )
-                ],
-              ),
-            ),
-          );
+          return _buildEmptyState();
         } else if (snapshot.hasData) {
           final haberler = snapshot.data!;
-          return ListView.builder(
-            itemCount: haberler.length,
-            itemBuilder: (context, index) {
-              final haber = haberler[index];
-              return haber.isYoutubeVideo ? _buildYoutubeVideoCard(haber) : _buildNewsCard(haber);
-            },
+          return RefreshIndicator(
+            onRefresh: () async => _fetchAndTranslateNews(),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: haberler.length,
+              itemBuilder: (context, index) {
+              return _buildNewsCard(haberler[index]);
+              },
+            ),
           );
         } else {
           return const Center(child: Text('Bilinmeyen bir hata oluştu.'));
@@ -207,74 +178,95 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     );
   }
 
+  // --- YARDIMCI WIDGET'LAR ---
 
-
-  // --- YARDIMCI KART WIDGET'LARI ---
-  Widget _buildNewsCard(HaberModel haber) {
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      child: InkWell(
-        onTap: () => _summarizeAndShowPopup(haber),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (haber.sourceIconUrl != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 12.0, top: 4.0),
-                  child: Image.network(haber.sourceIconUrl!, width: 20, height: 20, errorBuilder: (c, e, s) => const Icon(Icons.language, size: 20)),
-                ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(haber.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text(haber.sourceName, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                    const SizedBox(height: 8),
-                    Text(haber.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70)),
-                  ],
-                ),
-              ),
-              const Padding(padding: EdgeInsets.only(left: 8.0), child: Icon(Icons.auto_awesome, color: Colors.amber)),
-            ],
-          ),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.interests_rounded, size: 60, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('İçerik Bulunamadı', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            const Text('Lütfen Ayarlar\'dan takip etmek istediğiniz RSS kaynaklarını ekleyin.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.settings),
+              label: const Text('Ayarları Aç'),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())).then((_) => _fetchAndTranslateNews());
+              },
+            )
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildYoutubeVideoCard(HaberModel video) {
-    return GestureDetector(
-      onTap: () => _launchURL(video.link),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        elevation: 5,
+  Widget _buildNewsCard(HaberModel haber) {
+    bool hasImage = haber.imageUrl != null && haber.imageUrl!.isNotEmpty;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: InkWell(
+        onTap: () => _summarizeAndShowPopup(haber),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (video.thumbnailUrl != null)
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Image.network(video.thumbnailUrl!, height: 200, width: double.infinity, fit: BoxFit.cover, loadingBuilder: (context, child, progress) => progress == null ? child : const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())), errorBuilder: (context, error, stackTrace) => const SizedBox(height: 200, child: Icon(Icons.error, size: 50))),
-                  Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle), child: const Icon(Icons.play_arrow, color: Colors.white, size: 50)),
-                ],
+            if (hasImage)
+              Image.network(
+                haber.imageUrl!,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) => progress == null ? child : const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
               ),
+
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(video.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Row(
+                    children: [
+                      if (!hasImage && haber.sourceIconUrl != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: Image.network(haber.sourceIconUrl!, width: 20, height: 20, errorBuilder: (c, e, s) => const Icon(Icons.language, size: 20)),
+                        ),
+                      Text(
+                        haber.sourceName.toUpperCase(),
+                        style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                      const Spacer(),
+                      Icon(Icons.auto_awesome, color: Theme.of(context).colorScheme.secondary.withOpacity(0.8), size: 20),
+                    ],
+                  ),
                   const SizedBox(height: 8),
-                  Text(video.description, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                  Text(
+                    haber.title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  if (haber.description.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      haber.description,
+                      maxLines: hasImage ? 2 : 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ],
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

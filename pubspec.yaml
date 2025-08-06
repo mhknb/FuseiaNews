@@ -43,6 +43,7 @@ dependencies:
   share_plus: ^11.0.0
   path_provider: ^2.1.5
   flutter_dotenv: ^5.1.0
+  flutter_launcher_icons: ^0.13.1
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +72,16 @@ flutter:
     - assets/images/
     - .env
   #   - images/a_dot_ham.jpeg
+flutter_launcher_icons:
+  # Android için ayarlar
+  android: true
+  # iOS için ayarlar
+  ios: true
+  # Kullanılacak olan logonun dosya yolu
+  # Bu yolun, projenin ana dizinine göre doğru olduğundan emin ol
+  image_path: "assets/images/HAG.png"
+  # (Opsiyonel) Android'in yeni "Adaptive Icons" özelliği için
+  min_sdk_android: 21
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

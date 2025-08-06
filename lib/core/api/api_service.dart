@@ -1,52 +1,44 @@
-
-
-
-
-
-
-
-
-
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:webfeed_plus/domain/atom_feed.dart';
-import 'package:webfeed_plus/domain/rss_feed.dart';
-
+import 'package:webfeed_plus/webfeed_plus.dart';
 import '../models/news_model.dart';
 import '../utilis/constants.dart';
+import 'youtube_service.dart';
+
+
 
 class ApiService {
-
+  final YoutubeService _youtubeService = YoutubeService();
 
   /// Global haber akışı için haberleri çeker.
   Future<List<HaberModel>> fetchGlobalNews() {
-    // kGlobalNewsUrl, constants.dart dosyasından gelen sabit bir URL'dir.
+
     return _fetchNewsFromUrl(kGlobalNewsUrl, 'BBC Teknoloji');
   }
 
-  /// Kullanıcının seçtiği ve eklediği tüm kişisel kaynaklardan haberleri çeker.
+  /// Kullanıcının seçtiği ve eklediği tüm kişisel kaynaklardan (RSS ve YouTube) haberleri çeker.
   Future<List<HaberModel>> fetchPersonalizedNews() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Kullanıcının Ayarlar'dan manuel olarak eklediği özel RSS kaynaklarını al
-    final String? customSourcesJson = prefs.getString('user_custom_sources');
+
+
+   final String? customSourcesJson = prefs.getString('user_custom_sources');
     final List<dynamic> customRssList = (customSourcesJson != null && customSourcesJson.isNotEmpty)
         ? jsonDecode(customSourcesJson)
         : [];
 
-    // 2. Kullanıcının Ayarlar'dan manuel olarak eklediği YouTube kanallarını al
+
     final customYoutubeUrls = prefs.getStringList('youtube_channels') ?? [];
 
     if (customRssList.isEmpty && customYoutubeUrls.isEmpty) {
       return []; // Takip edilen hiçbir kaynak yoksa boş liste döndür.
     }
 
+
     List<Future<List<HaberModel>>> futures = [];
 
-    // Her bir özel RSS kaynağı için haber çekme işlemini başlat
-    for (var source in customRssList) {
+   for (var source in customRssList) {
       if (source is Map<String, dynamic> && source.containsKey('name') && source.containsKey('url')) {
         final String name = source['name'];
         final String url = source['url'];
@@ -54,17 +46,12 @@ class ApiService {
       }
     }
 
-    // Her bir özel YouTube kanalı için video çekme işlemini başlat
-    for (String youtubeUrl in customYoutubeUrls) {
-
+   if (customYoutubeUrls.isNotEmpty) {
+      futures.add(_youtubeService.fetchAllTrackedChannelVideos());
     }
 
-    // Tüm işlemlerin bitmesini bekle
-    final results = await Future.wait(futures);
-    // Gelen tüm listeleri tek bir büyük listeye birleştir
+   final results = await Future.wait(futures);
     List<HaberModel> allPersonalizedNews = results.expand((list) => list).toList();
-
-    // Haberleri tarihe göre en yeniden en eskiye sırala
     allPersonalizedNews.sort((a, b) {
       if (a.pubDate == null || b.pubDate == null) return 0;
       return b.pubDate!.compareTo(a.pubDate!);
@@ -88,19 +75,14 @@ class ApiService {
       final responseBody = utf8.decode(response.bodyBytes);
       List<HaberModel> newsList = [];
 
-      // Gelen verinin formatını kontrol et
+
       if (responseBody.trim().contains('<feed')) {
-        // --- ATOM FORMATI İŞLEME ---
         var feed = AtomFeed.parse(responseBody);
         newsList = feed.items?.map((item) {
-
-          // Atom için görsel arama mantığı
           String? imageUrl;
           if (item.media?.thumbnails != null && item.media!.thumbnails!.isNotEmpty) {
             imageUrl = item.media!.thumbnails!.first.url;
           }
-
-          // Atom'daki açıklamalar genellikle temizdir, yine de kontrol edelim.
           final description = (item.summary ?? item.content ?? 'Açıklama Yok').replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '').trim();
 
           return HaberModel(
@@ -114,27 +96,18 @@ class ApiService {
             imageUrl: imageUrl,
           );
         }).toList() ?? [];
-
-      } else if (responseBody.trim().contains('<rss')) {
-        // --- RSS FORMATI İŞLEME ---
+      }
+      else if (responseBody.trim().contains('<rss')) {
         var feed = RssFeed.parse(responseBody);
         newsList = feed.items?.map((item) {
-
-          // RSS için görsel arama mantığı (3 adımlı)
           String? imageUrl;
-          // 1. Öncelik: <media:content> (Yüksek kaliteli, ana görsel)
           if (item.media?.contents != null && item.media!.contents!.isNotEmpty) {
             imageUrl = item.media!.contents!.first.url;
-          }
-          // 2. Öncelik: <media:thumbnail> (BBC'nin kullandığı küçük resim)
-          else if (item.media?.thumbnails != null && item.media!.thumbnails!.isNotEmpty) {
+          } else if (item.media?.thumbnails != null && item.media!.thumbnails!.isNotEmpty) {
             imageUrl = item.media!.thumbnails!.first.url;
-          }
-          // 3. Öncelik: <enclosure> (Genellikle podcast veya eski sitelerde)
-          else if (item.enclosure?.url != null) {
+          } else if (item.enclosure?.url != null) {
             imageUrl = item.enclosure!.url;
           }
-
           String descriptionText = item.description?.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '').trim() ?? 'Açıklama Yok';
 
           return HaberModel(
@@ -155,17 +128,14 @@ class ApiService {
 
     } catch (e) {
       print("HATA: Bu URL işlenemedi -> $url. Hata Detayı: $e");
-      // Hata durumunda boş liste döndürmek, 'Sana Özel' akışındaki diğer
-      // kaynakların yüklenmeye devam etmesini sağlar.
       return [];
     }
   }
 
-// _getIconUrl fonksiyonu (Bu fonksiyon sınıf içinde kalmalı)
+  /// Bir kaynak için ikon URL'si bulan yardımcı fonksiyon.
   String? _getIconUrl(String itemLink, String? feedIconUrl) {
     if (feedIconUrl != null && feedIconUrl.isNotEmpty) return feedIconUrl;
     final uri = Uri.tryParse(itemLink);
     return uri != null ? 'https://www.google.com/s2/favicons?sz=64&domain_url=${uri.host}' : null;
   }
-
 }
