@@ -90,42 +90,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- ARAYÜZ İŞLEMLERİ ---
 
   void _showAddSourceDialog({required bool isYoutube}) {
-    // Diyalog her açıldığında controller'ları temizle
-    final urlController = isYoutube ? _youtubeUrlController : _rssUrlController;
+   final urlController = isYoutube ? _youtubeUrlController : _rssUrlController;
     final nameController = _rssNameController;
     urlController.clear();
     nameController.clear();
+    if (_formKey.currentState != null) {
+      _formKey.currentState!.reset();
+    }
 
     showDialog(
       context: context,
+      barrierDismissible: false, // Kullanıcının dışarı tıklayarak kapatmasını engelle
       builder: (context) => AlertDialog(
         title: Text(isYoutube ? 'Yeni YouTube Kanalı Ekle' : 'Yeni RSS Kaynağı Ekle'),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!isYoutube)
+        content: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!isYoutube)
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Kaynak Adı',
+                      hintText: 'Örn: Hürriyet Teknoloji',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Kaynak adı boş olamaz.';
+                      }
+                      return null;
+                    },
+                  ),
+
+                if (!isYoutube) const SizedBox(height: 16),
+
+                // --- HEM RSS HEM YOUTUBE İÇİN URL ALANI ---
                 TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Kaynak Adı'),
-                  validator: (value) => value == null || value.isEmpty ? 'İsim boş olamaz' : null,
+                  controller: urlController,
+                  keyboardType: TextInputType.url, // URL klavyesi açar
+                  decoration: InputDecoration(
+                    labelText: isYoutube ? 'YouTube Kanal URL\'si' : 'RSS/Atom URL Adresi',
+
+                    // --- BİLGİLENDİRME METİNLERİ ---
+                    hintText: isYoutube
+                        ? 'örn: https://youtube.com/channel/UC...'
+                        : 'örn: https://site.com/feed/',
+
+                    helperText: isYoutube
+                        ? 'Lütfen /channel/UC... formatındaki linki girin.'
+                        : 'Geçerli bir RSS veya Atom linki olmalıdır.',
+                    helperMaxLines: 2,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'URL boş olamaz.';
+                    }
+                    // Basit URL format kontrolü
+                    if (!value.trim().startsWith('http')) {
+                      return 'Lütfen geçerli bir URL girin.';
+                    }
+                    // YouTube için daha spesifik bir kontrol
+                    if (isYoutube && !value.trim().contains('/channel/UC')) {
+                      return 'Geçersiz format. Lütfen tam kanal linkini girin.';
+                    }
+                    return null;
+                  },
                 ),
-              TextFormField(
-                controller: urlController,
-                decoration: InputDecoration(labelText: isYoutube ? 'Kanal URL\'si' : 'RSS URL Adresi'),
-                validator: (value) => value == null || value.isEmpty ? 'URL boş olamaz' : null,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
           ElevatedButton(
             onPressed: () {
+              // Form geçerliyse ekleme işlemini yap
               if (_formKey.currentState!.validate()) {
                 setState(() {
                   if (isYoutube) {
@@ -146,7 +189,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     // MainScreen zaten bir Scaffold ve AppBar sağladığı için,
