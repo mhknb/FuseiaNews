@@ -7,11 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-
-// Kendi dosya yollarını kontrol et
 import '../../../core/api/PythonApiService.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
+import '../../../core/api/image_search_service.dart';
 import '../../../core/models/news_model.dart';
 
 class GlobalNewsScreen extends StatefulWidget {
@@ -22,10 +21,12 @@ class GlobalNewsScreen extends StatefulWidget {
 }
 
 class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
-  // --- SERVİSLER (PYTHONAPISERVICE KALDIRILDI) ---
   final ApiService _apiService = ApiService();
-  final GeminiApiService _geminiService = GeminiApiService();
+  final GeminiApiService _geminiService = GeminiApiService(); // Tek AI servisimiz bu.
+  final PythonApiService _pythonApiService = PythonApiService();
+  final ImageSearchService _imageSearchService = ImageSearchService();
   late Future<List<HaberModel>> _haberlerFuture;
+
 
   @override
   void initState() {
@@ -35,10 +36,7 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
 
   Future<void> _sharePost(Uint8List imageBytes, String postText) async {
     try {
-      // --- 1. ADIM: METNİ PANOYA KOPYALA ---
       await Clipboard.setData(ClipboardData(text: postText));
-
-      // --- 2. ADIM: KULLANICIYA BİLGİ VER ---
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -48,14 +46,12 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
         );
       }
 
-      // --- 3. ADIM: GÖRSELİ PAYLAŞ ---
       final directory = await getTemporaryDirectory();
       final imagePath = '${directory.path}/ai_generated_post.png';
       final imageFile = File(imagePath);
       await imageFile.writeAsBytes(imageBytes);
 
-      // Artık 'text' parametresini göndermemize gerek yok, çünkü Instagram onu zaten okumuyor.
-      final result = await Share.shareXFiles([XFile(imagePath)]);
+     final result = await Share.shareXFiles([XFile(imagePath)]);
 
       if (result.status == ShareResultStatus.success) {
         print('Paylaşım menüsü başarıyla açıldı!');
@@ -115,29 +111,53 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
     showDialog(context: context, barrierDismissible: false, builder: (context) => const Dialog(child: Padding(padding: EdgeInsets.all(20.0), child: Row(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(width: 20), Text("İçerikler Üretiliyor...")]))));
 
     String? postTextForSharing;
-    Uint8List? finalImageBytes; // Bu artık şablonlu değil, ham görsel olacak
+    Uint8List? finalImageBytes;
 
     try {
-      // 1. ADIM: Metni Gemini'den, ham görseli internetten eş zamanlı olarak al.
+      // 1. ADIM: Metni AI'dan iste (bu aynı kaldı)
       final postTextFuture = _geminiService.createInstagramPost(summaryContent);
-      final rawImageFuture = http.get(Uri.parse('https://picsum.photos/1080')); // Rastgele görsel
-      final results = await Future.wait([postTextFuture, rawImageFuture]);
+
+      // Pexels'tan görsel arama
+      final keyword = title.split(' ').take(3).join(' ');
+      final imageUrlFuture = _imageSearchService.searchImageByKeyword(keyword);
+
+      // Her iki işlemin de bitmesini bekle
+      final results = await Future.wait([postTextFuture, imageUrlFuture]);
 
       postTextForSharing = results[0] as String?;
-      final rawImageResponse = results[1] as http.Response;
+      final String? imageUrl = results[1] as String?;
 
-      // 2. ADIM: PYTHON ADIMI ARTIK YOK. Doğrudan gelen görseli kullan.
-      if (rawImageResponse.statusCode == 200 && (postTextForSharing != null && !postTextForSharing.contains("API hatası"))) {
-        print("İnternetten ham görsel başarıyla alındı.");
-        finalImageBytes = rawImageResponse.bodyBytes; // Doğrudan ata
+      // 3. ADIM: Bulunan URL'den resmi indir
+      if (imageUrl != null) {
+        print("Pexels'tan görsel URL'si bulundu, resim indiriliyor...");
+        final imageResponse = await http.get(Uri.parse(imageUrl));
+        if (imageResponse.statusCode == 200) {
+          finalImageBytes = imageResponse.bodyBytes;
+        }
       } else {
-        throw Exception('Ham görsel veya Instagram metni alınamadı. Gelen metin: $postTextForSharing');
+        // Eğer Pexels'ta sonuç bulunamazsa, rastgele bir resim çek (B planı)
+        print("Pexels'ta sonuç bulunamadı, Picsum'dan rastgele resim çekiliyor...");
+        final imageResponse = await http.get(Uri.parse('https://picsum.photos/1080'));
+        if (imageResponse.statusCode == 200) {
+          finalImageBytes = imageResponse.bodyBytes;
+        }
       }
+
+      // Eğer metin gelmediyse veya hiçbir şekilde resim alınamadıysa hata ver.
+      if (postTextForSharing == null || finalImageBytes == null) {
+        throw Exception('Instagram metni veya görseli oluşturulamadı.');
+      }
+
+      // 4. ADIM: (OPSİYONEL) Python'a gönderip şablona işlet
+      // Bu adımı şimdilik atlayabilir veya aktif bırakabilirsin.
+      // finalImageBytes = await _pythonApiService.createPostWithTemplate(...);
+
     } catch (e) {
       print("İçerik oluşturma akışında hata: $e");
     }
 
     if (!mounted) return;
+
     Navigator.pop(context); // Yükleniyor penceresini kapat
 
     // 3. ADIM: Nihai sonucu (metin + internetten gelen görsel) kullanıcıya göster.
