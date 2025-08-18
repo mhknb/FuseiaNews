@@ -1,4 +1,4 @@
-import 'dart:convert';
+  import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webfeed_plus/webfeed_plus.dart';
@@ -11,10 +11,43 @@ import 'youtube_service.dart';
 class ApiService {
   final YoutubeService _youtubeService = YoutubeService();
 
-  /// Global haber akışı için haberleri çeker.
-  Future<List<HaberModel>> fetchGlobalNews() {
 
-    return _fetchNewsFromUrl(kGlobalNewsUrl, 'BBC Teknoloji');
+  final Map<String, String> _interestToRssMap = {
+    'Teknoloji': 'http://feeds.bbci.co.uk/news/technology/rss.xml',
+    'Bilim': 'http://feeds.bbci.co.uk/news/science_and_environment/rss.xml',
+    'Sağlık': 'http://feeds.bbci.co.uk/news/health/rss.xml',
+    'Spor': 'https://feeds.skynews.com/feeds/rss/sports.xml',
+    'Gündem': 'http://feeds.bbci.co.uk/news/rss.xml',
+    'Yapay Zeka': 'https://www.technologyreview.com/feed/',
+    'Finans': 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',
+    'Oyun': 'https://www.gamespot.com/feeds/news/',
+    'Sinema': 'https://www.cinemablend.com/rss/news.xml',
+    'Eğitim': 'https://www.edsurge.com/news/rss',
+  };
+
+  /// Global haber akışı için haberleri çeker.
+  Future<List<HaberModel>> fetchGlobalNews() async {
+    final prefs = await SharedPreferences.getInstance();
+   final userInterests = prefs.getStringList('user_interests') ?? [];
+
+    if (userInterests.isEmpty) {
+      return _fetchNewsFromUrl(_interestToRssMap['Gündem']!, 'Gündem');
+    }
+
+    List<Future<List<HaberModel>>> futures = [];
+
+    for (String interest in userInterests) {
+      if (_interestToRssMap.containsKey(interest)) {
+        String url = _interestToRssMap[interest]!;
+        futures.add(_fetchNewsFromUrl(url, interest));
+      }
+    }
+
+    final results = await Future.wait(futures);
+    List<HaberModel> allNews = results.expand((list) => list).toList();
+    allNews.sort((a, b) => b.pubDate?.compareTo(a.pubDate ?? DateTime(0)) ?? 0);
+
+    return allNews;
   }
 
   /// Kullanıcının seçtiği ve eklediği tüm kişisel kaynaklardan (RSS ve YouTube) haberleri çeker.

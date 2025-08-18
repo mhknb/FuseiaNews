@@ -15,8 +15,7 @@ class ImageSearchService {
       return null; // Anahtar yoksa hiç deneme
     }
 
-    // Pexels, arama için en az 3 harf gerektirir.
-    if (keyword.length < 3) {
+   if (keyword.length < 10) {
       return null;
     }
 
@@ -27,14 +26,10 @@ class ImageSearchService {
       final response = await http.get(url, headers: headers);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // Eğer arama sonucu fotoğraf içeriyorsa
         if (data['photos'] != null && data['photos'].isNotEmpty) {
-          // İlk fotoğrafın, 'large' boyutundaki URL'sini geri döndür.
-          // Diğer boyutlar: 'original', 'medium', 'small', 'portrait', 'landscape', 'tiny'
-          return data['photos'][0]['src']['large'];
+       return data['photos'][0]['src']['large'];
         }
-        // Eğer arama sonucu boşsa
-        return null;
+         return null;
       } else {
         print("Pexels API Hatası: ${response.statusCode} - ${response.body}");
         return null;

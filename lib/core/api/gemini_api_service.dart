@@ -64,7 +64,7 @@ class GeminiApiService {
     return null;
   }
 
-  // --- PUBLIC FONKSİYONLAR ---
+
 
   Future<String?> summarizeText(String textToSummarize) {
     final prompt = 'Aşağıdaki metni, ana fikrini koruyarak 2-3 cümlelik akıcı bir Türkçe ile özetle:\n\n"$textToSummarize"';
