@@ -185,7 +185,7 @@ class _YoutubeFeedScreenState extends State<YoutubeFeedScreen> {
                     video.description,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white.withOpacity(0.7), height: 1.5),
+                    style: TextStyle(height: 1.5),
                   ),
                 ],
               ),

@@ -2,10 +2,12 @@
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/utilis/providers.dart';
 import '../../01_setup/screens/interest_selection_screen.dart';
 
-// Kaynakları temsil etmek için basit bir class (Model)
+
 class RssSource {
   String name;
   String url;
@@ -128,7 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 if (!isYoutube) const SizedBox(height: 16),
 
-                // --- HEM RSS HEM YOUTUBE İÇİN URL ALANI ---
+
                 TextFormField(
                   controller: urlController,
                   keyboardType: TextInputType.url, // URL klavyesi açar
@@ -191,8 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
   @override
   Widget build(BuildContext context) {
-    // MainScreen zaten bir Scaffold ve AppBar sağladığı için,
-    // burada sadece sayfanın içeriğini döndürüyoruz.
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -202,6 +203,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildSectionCard(
+            title: 'Görünüm Ayarları',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                themeProvider.themeMode == ThemeMode.dark
+                    ? Icons.dark_mode_rounded
+                    : Icons.light_mode_rounded,
+              ),
+              title: const Text('Koyu Tema'),
+              trailing: Switch(
+                value: themeProvider.themeMode == ThemeMode.dark,
+                onChanged: (value) {
+                  // Provider'daki toggleTheme fonksiyonunu çağır
+                  themeProvider.toggleTheme(value);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+
           _buildSectionCard(
             title: 'API Anahtarı',
             child: TextFormField(

@@ -148,43 +148,34 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     Uint8List? finalImageBytes;
 
     try {
-      // 1. ADIM: Metni AI'dan iste (bu aynı kaldı)
-      final postTextFuture = _geminiService.createInstagramPost(summaryContent);
+     final postTextFuture = _geminiService.createInstagramPost(summaryContent);
 
-      // Pexels'tan görsel arama
-      final keyword = title.split(' ').take(3).join(' ');
+     final keyword = title.split(' ').take(3).join(' ');
       final imageUrlFuture = _imageSearchService.searchImageByKeyword(keyword);
 
-      // Her iki işlemin de bitmesini bekle
       final results = await Future.wait([postTextFuture, imageUrlFuture]);
 
       postTextForSharing = results[0] as String?;
       final String? imageUrl = results[1] as String?;
 
-      // 3. ADIM: Bulunan URL'den resmi indir
-      if (imageUrl != null) {
+     if (imageUrl != null) {
         print("Pexels'tan görsel URL'si bulundu, resim indiriliyor...");
         final imageResponse = await http.get(Uri.parse(imageUrl));
         if (imageResponse.statusCode == 200) {
           finalImageBytes = imageResponse.bodyBytes;
         }
       } else {
-        // Eğer Pexels'ta sonuç bulunamazsa, rastgele bir resim çek (B planı)
-        print("Pexels'ta sonuç bulunamadı, Picsum'dan rastgele resim çekiliyor...");
+       print("Pexels'ta sonuç bulunamadı, Picsum'dan rastgele resim çekiliyor...");
         final imageResponse = await http.get(Uri.parse('https://picsum.photos/1080'));
         if (imageResponse.statusCode == 200) {
           finalImageBytes = imageResponse.bodyBytes;
         }
       }
 
-      // Eğer metin gelmediyse veya hiçbir şekilde resim alınamadıysa hata ver.
       if (postTextForSharing == null || finalImageBytes == null) {
         throw Exception('Instagram metni veya görseli oluşturulamadı.');
       }
 
-      // 4. ADIM: (OPSİYONEL) Python'a gönderip şablona işlet
-      // Bu adımı şimdilik atlayabilir veya aktif bırakabilirsin.
-      // finalImageBytes = await _pythonApiService.createPostWithTemplate(...);
 
     } catch (e) {
       print("İçerik oluşturma akışında hata: $e");
@@ -194,7 +185,6 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
 
     Navigator.pop(context); // Yükleniyor penceresini kapat
 
-    // 3. ADIM: Nihai sonucu (metin + internetten gelen görsel) kullanıcıya göster.
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -242,9 +232,6 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
               padding: const EdgeInsets.all(8.0),
               itemCount: haberler.length,
               itemBuilder: (context, index) {
-                // --- DEĞİŞİKLİK BURADA ---
-                // Artık 'isYoutubeVideo' kontrolüne gerek yok,
-                // çünkü bu ekranda sadece haberler olacak.
                 return _buildNewsCard(haberler[index]);
               },
             ),
@@ -256,7 +243,6 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     );
   }
 
-  // --- YARDIMCI WIDGET'LAR ---
 
   Widget _buildEmptyState() {
     return Center(
@@ -336,7 +322,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
                       haber.description,
                       maxLines: hasImage ? 2 : 4,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white70),
+                      style: const TextStyle(),
                     ),
                   ],
                 ],

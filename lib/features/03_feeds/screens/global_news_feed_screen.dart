@@ -254,7 +254,7 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
                     haber.title,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, ),
                   ),
                   if (haber.description.isNotEmpty) ...[
                     const SizedBox(height: 8),
@@ -262,7 +262,7 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
                       haber.description,
                       maxLines: hasImage ? 2 : 4,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white70),
+                      style: const TextStyle(),
                     ),
                   ],
                 ],
