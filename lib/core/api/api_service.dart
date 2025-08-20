@@ -160,7 +160,6 @@ class ApiService {
       return newsList;
 
     } catch (e) {
-      print("HATA: Bu URL işlenemedi -> $url. Hata Detayı: $e");
       return [];
     }
   }

@@ -13,19 +13,17 @@ class ThemeProvider with ChangeNotifier {
     _loadTheme();
   }
 
-  // Cihaz hafızasından kayıtlı temayı yükle
-  void _loadTheme() async {
+ void _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDarkMode = prefs.getBool(THEME_KEY) ?? true; // Varsayılan olarak koyu tema
+    final isDarkMode = prefs.getBool(THEME_KEY) ?? true;
     _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 
-  // Temayı değiştir ve cihaza kaydet
   void toggleTheme(bool isDarkMode) async {
     _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(THEME_KEY, isDarkMode);
-    notifyListeners(); // Değişikliği dinleyen widget'ları uyar
+    notifyListeners();
   }
 }

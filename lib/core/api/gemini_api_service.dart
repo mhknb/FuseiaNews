@@ -19,7 +19,6 @@ class GeminiApiService {
     }
 
     if (apiKey == null || apiKey.isEmpty) {
-      print("HATA: Gemini API anahtarı ne ayarlarda ne de .env dosyasında bulunamadı.");
       return null;
     }
 
@@ -41,23 +40,17 @@ class GeminiApiService {
         final response = await model.generateContent([Content.text(prompt)]);
         return response.text;
       } on GenerativeAIException catch (e) {
-        // Sunucu meşgul veya kota aşıldı gibi geçici hatalar için
         if (e.message.contains('overloaded') || e.message.contains('503') || e.message.contains('quota')) {
           attempt++;
           if (attempt >= retries) {
-            print("Gemini $taskName Hatası: Model aşırı yüklendi veya kota aşıldı, deneme limitine ulaşıldı.");
             return "API şu an çok yoğun, lütfen daha sonra tekrar deneyin.";
           }
           final delay = Duration(seconds: 2 << (attempt - 1)); // 2s, 4s, 8s bekle
-          print("Gemini $taskName Hatası: Model meşgul. $delay sonra tekrar denenecek... ($attempt/$retries)");
           await Future.delayed(delay);
         } else {
-          // Başka bir Gemini hatası ise, tekrar deneme.
-          print("Gemini $taskName Hatası (Tekrar Denenmeyecek): $e");
           return "Yapay zeka modelinde bir hata oluştu: ${e.message}";
         }
       } catch (e) {
-        print("Genel $taskName Hatası: $e");
         return "İşlem sırasında genel bir hata oluştu.";
       }
     }

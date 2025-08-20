@@ -34,7 +34,6 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
     }
   }
 
-  // SADECE BU FONKSİYON GÜNCELLENDİ
   Future<void> _saveApiKey() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -45,7 +44,6 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_api_key', _apiKeyController.text);
 
-        // Kullanıcıya başarı mesajını göstermeye devam edelim.
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('API Anahtarı başarıyla kaydedildi!'),
@@ -64,7 +62,6 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
         }
 
       } catch (e) {
-        // Hata durumunda sadece hata mesajını göster, yönlendirme yapma.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Hata oluştu: $e'),
@@ -130,7 +127,6 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  // _isLoading true ise butonu devre dışı bırak ve animasyon göster
                   onPressed: _isLoading ? null : _saveApiKey,
                   child: _isLoading
                       ? const SizedBox(

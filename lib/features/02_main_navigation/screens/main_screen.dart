@@ -38,8 +38,8 @@ class _MainScreenState extends State<MainScreen> {
     switch (_selectedIndex) {
       case 0: return 'Global Haber Akışı';
       case 1: return 'Sana Özel Akış';
-      case 2: return 'YouTube Akışı'; // YENİ BAŞLIK
-      case 3: return 'Ayarlar'; // AYARLARIN İNDEKSİ DEĞİŞTİ
+      case 2: return 'YouTube Akışı';
+      case 3: return 'Ayarlar';
       default: return 'AI Haber Akışı';
     }
   }
@@ -52,6 +52,7 @@ class _MainScreenState extends State<MainScreen> {
           style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+
       ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),

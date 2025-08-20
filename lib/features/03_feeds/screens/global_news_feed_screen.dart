@@ -51,7 +51,7 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
      final result = await Share.shareXFiles([XFile(imagePath)]);
 
       if (result.status == ShareResultStatus.success) {
-        print('Paylaşım menüsü başarıyla açıldı!');
+
       }
 
     } catch (e) {
@@ -62,7 +62,6 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
       }
     }
   }
-
 
 
 
@@ -124,13 +123,11 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
       final String? imageUrl = results[1] as String?;
 
       if (imageUrl != null) {
-        print("Pexels'tan görsel URL'si bulundu, resim indiriliyor...");
         final imageResponse = await http.get(Uri.parse(imageUrl));
         if (imageResponse.statusCode == 200) {
           finalImageBytes = imageResponse.bodyBytes;
         }
       } else {
-        print("Pexels'ta sonuç bulunamadı, Picsum'dan rastgele resim çekiliyor...");
         final imageResponse = await http.get(Uri.parse('https://picsum.photos/1080'));
         if (imageResponse.statusCode == 200) {
           finalImageBytes = imageResponse.bodyBytes;

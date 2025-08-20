@@ -11,7 +11,6 @@ class ImageSearchService {
   /// Verilen bir anahtar kelime ile ilgili bir görselin URL'sini arar ve bulur.
   Future<String?> searchImageByKeyword(String keyword) async {
     if (_apiKey == null || _apiKey!.isEmpty) {
-      print("HATA: Pexels API anahtarı .env dosyasında bulunamadı.");
       return null; // Anahtar yoksa hiç deneme
     }
 
@@ -31,11 +30,9 @@ class ImageSearchService {
         }
          return null;
       } else {
-        print("Pexels API Hatası: ${response.statusCode} - ${response.body}");
         return null;
       }
     } catch (e) {
-      print("Pexels Bağlantı Hatası: $e");
       return null;
     }
   }

@@ -8,7 +8,6 @@ class OnboardingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ekran boyutlarını alalım ki tasarımımız orantılı olsun
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -39,9 +38,8 @@ class OnboardingScreen extends StatelessWidget {
                   color: Colors.white70,
                 ),
               ),
-              const Spacer(), // Boşluk bırakarak ortalamak için
+              const Spacer(),
 
-              // Ortadaki resimli kutu
               Container(
                 padding: const EdgeInsets.all(0.0),
                 decoration: BoxDecoration(
@@ -68,10 +66,8 @@ class OnboardingScreen extends StatelessWidget {
 
               ),
 
-              const Spacer(), // Boşluk bırakarak ortalamak için
-
-              // Alttaki "Geç" butonu
-              ElevatedButton(
+              const Spacer(),
+             ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: Theme.of(context).primaryColor,
@@ -81,9 +77,7 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  // ApiKeyScreen'e yönlendir.
-                  // pushReplacement, kullanıcının bu ekrana geri dönmesini engeller.
-                  Navigator.pushReplacement(
+                 Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (context) => const ApiKeyScreen()),
                   );

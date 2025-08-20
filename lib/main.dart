@@ -25,13 +25,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Renk paletimizi tanımlayalım
-    const Color primaryColor = Colors.indigo; // Koyu Mor (Indigo yerine)
-    const Color secondaryColor = Colors.indigoAccent; // Altın Sarısı
-    const Color darkBackgroundColor = Color(0xFF121212); // Koyu Arka Plan
-    const Color lightPrimaryColor = Color(0xFF528b8b); // Turquoise
-    const Color lightBackgroundColor = Color(0xFFFFE4C4); // Bisque
-    const Color lightCardColor = Color(0xFFFFE4C4); // Kartlar saf beyaz
-    const Color lightTextColor = Color(0xFF333333); // Okunaklılık için koyu gri metin
+    const Color primaryColor = Colors.indigo;
+    const Color secondaryColor = Colors.indigoAccent;
+    const Color darkBackgroundColor = Color(0xFF121212);
+    const Color lightPrimaryColor = Color(0xFF4A9782);
+    const Color lightBackgroundColor = Color(0xFFDCD0A8);
+    const Color lightCardColor = Color(0xFFDCD0A8);
+    const Color lightTextColor = Color(0xFF333333);
 
 
     return MaterialApp(
@@ -41,17 +41,15 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: true,
-        scaffoldBackgroundColor: lightBackgroundColor, // Ana arka plan rengi
-
-        // Renk şemasını yeni renklerle oluştur
+        scaffoldBackgroundColor: lightBackgroundColor,
         colorScheme: ColorScheme.fromSeed(
           seedColor: lightPrimaryColor,
           brightness: Brightness.light,
           background: lightBackgroundColor,
           primary: lightPrimaryColor,
-          onPrimary: Colors.black, // Ana renk üzerindeki metin (siyah daha okunaklı)
-          surface: lightCardColor, // Kartların ve diyalogların rengi
-          onSurface: lightTextColor, // Kartların üzerindeki ana metin rengi
+          onPrimary: Colors.black,
+          surface: lightCardColor,
+          onSurface: lightTextColor,
         ),
 
         // Arayüz bileşenlerini açık temaya göre özelleştir
@@ -80,8 +78,8 @@ class MyApp extends StatelessWidget {
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: Colors.white,
-          selectedItemColor: lightPrimaryColor, // Seçili sekme turkuaz
-          unselectedItemColor: Colors.grey, // Seçili olmayan soluk gri
+          selectedItemColor: lightPrimaryColor,
+          unselectedItemColor: Colors.grey,
         ),
 
         textTheme: const TextTheme(
@@ -110,17 +108,17 @@ class MyApp extends StatelessWidget {
           primary: primaryColor,
           secondary: secondaryColor,
           background: darkBackgroundColor,
-          surface: Color(0xFF121212), // Kartların rengi için hafif açık bir ton
+          surface: Color(0xFF121212),
         ),
 
 
 
 
-        // AppBar Teması
+
         appBarTheme: const AppBarTheme(
-          backgroundColor: darkBackgroundColor, // AppBar arka planı
-          foregroundColor: Colors.white, // AppBar yazı ve ikon rengi
-          elevation: 0, // AppBar altındaki gölgeyi kaldır
+          backgroundColor: darkBackgroundColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
             fontSize: 20,
@@ -128,12 +126,10 @@ class MyApp extends StatelessWidget {
             fontFamily: 'YourCustomFont', // Eğer özel bir fontun varsa
           ),
         ),
-
-        // Buton Temaları
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: primaryColor, // Buton arka planı
-            foregroundColor: Colors.white, // Buton yazı rengi
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -141,10 +137,9 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // Alt Navigasyon Barı Teması
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: Colors.grey[900],
-          selectedItemColor: secondaryColor, // Seçili ikonun rengi Altın Sarısı olsun
+          selectedItemColor: secondaryColor,
           unselectedItemColor: Colors.white70,
           type: BottomNavigationBarType.fixed,
         ),
@@ -161,7 +156,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
 
-        // Kart Teması
+
         cardTheme: CardThemeData(
           color: Colors.grey[850],
           elevation: 2,
@@ -174,11 +169,7 @@ class MyApp extends StatelessWidget {
           bodyMedium: TextStyle(color: Colors.white70),
         ),
       ),
-
-
-
-
-
+// Temalar arası geçişi sağlayan ThemeProvider kullanımı
       home: const AuthCheckScreen(),
     );
   }

@@ -18,7 +18,6 @@ class PersonalizedFeedScreen extends StatefulWidget {
 }
 
 class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
-  // Servisler (YouTubeService kaldırıldı)
   final ApiService _apiService = ApiService();
   final GeminiApiService _geminiService = GeminiApiService();
   final ImageSearchService _imageSearchService = ImageSearchService();
@@ -159,13 +158,11 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
       final String? imageUrl = results[1] as String?;
 
      if (imageUrl != null) {
-        print("Pexels'tan görsel URL'si bulundu, resim indiriliyor...");
         final imageResponse = await http.get(Uri.parse(imageUrl));
         if (imageResponse.statusCode == 200) {
           finalImageBytes = imageResponse.bodyBytes;
         }
       } else {
-       print("Pexels'ta sonuç bulunamadı, Picsum'dan rastgele resim çekiliyor...");
         final imageResponse = await http.get(Uri.parse('https://picsum.photos/1080'));
         if (imageResponse.statusCode == 200) {
           finalImageBytes = imageResponse.bodyBytes;
@@ -322,7 +319,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
                       haber.description,
                       maxLines: hasImage ? 2 : 4,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(),
+                      style: const TextStyle( fontSize: 14, height: 1.3),
                     ),
                   ],
                 ],

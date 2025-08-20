@@ -49,8 +49,7 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
 
   /// Kullanıcının seçtiği ilgi alanlarını kaydeder ve ana ekrana yönlendirir.
   Future<void> _saveAndNavigate() async {
-    // Eğer zaten kaydetme işlemi devam ediyorsa, tekrar basılmasını engelle
-    if (_isSaving) return;
+   if (_isSaving) return;
 
     setState(() {
       _isSaving = true;
@@ -78,7 +77,6 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
         );
       }
     } finally {
-      // İşlem başarılı da olsa, başarısız da olsa yüklenme animasyonunu durdur.
       if (mounted) {
         setState(() {
           _isSaving = false;
@@ -132,7 +130,6 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
                               }
                             });
                           },
-                          // Tema'dan gelen renkleri kullanır
                         );
                       }).toList(),
                     ),

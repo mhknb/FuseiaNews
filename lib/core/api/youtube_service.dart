@@ -50,7 +50,6 @@ class YoutubeService {
        final fullVideo = await _yt.videos.get(video.id);
 
       if (fullVideo.duration != null && fullVideo.duration!.inSeconds <= 61) {
-          print("Shorts videosu atlandı: ${fullVideo.title}");
           continue;
       }
 
