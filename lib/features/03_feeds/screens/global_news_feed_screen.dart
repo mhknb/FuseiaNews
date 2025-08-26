@@ -33,17 +33,6 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
 
   /// Haber bağlantısını browser'da açar
   Future<void> _openInBrowser(String url) async {
-    // Debug: Swipe çalışıyor mu kontrol et
-    print('🔄 SWIPE DETECTED! URL: $url');
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('🔄 Swipe algılandı! Uygulama içi tarayıcı açılıyor...'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
     
     try {
       final Uri uri = Uri.parse(url);
