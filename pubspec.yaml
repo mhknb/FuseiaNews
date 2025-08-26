@@ -81,8 +81,9 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/HAG.png"
+  image_path: "assets/images/fuseia_logo.png"
   min_sdk_android: 21
+  remove_alpha_ios: true
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
