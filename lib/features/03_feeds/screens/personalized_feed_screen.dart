@@ -471,7 +471,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
             onTap: () => _summarizeAndShowPopup(haber),
             borderRadius: BorderRadius.circular(16),
             child: SizedBox(
-              height: 180,
+              height: 200,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final double imageWidth = constraints.maxHeight * 4 / 5; // 4:5 oranı
@@ -536,6 +536,8 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
                           ],
                         ),
                         
+                        const SizedBox(height: 12),
+                        
                         // Alt bilgiler
                         Row(
                           children: [
@@ -570,6 +572,32 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
                               haber.pubDate?.toString().split(' ')[0] ?? '',
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: const Color(0xFF9CA3AF),
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 8),
+                        
+                        // Kaynak adı
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.language,
+                              size: 12,
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? const Color(0xFF9CA3AF)
+                                  : const Color(0xFF6B7280),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              haber.websiteName ?? haber.sourceName,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? const Color(0xFF9CA3AF)
+                                    : const Color(0xFF6B7280),
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ],

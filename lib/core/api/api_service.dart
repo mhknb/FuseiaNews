@@ -253,6 +253,7 @@ class ApiService {
             pubDate: item.updated,
             isYoutubeVideo: false,
             sourceName: sourceName,
+            websiteName: _getWebsiteName(url),
             sourceIconUrl: _getIconUrl(item.links?.first.href ?? url, feed.logo),
             imageUrl: imageUrl,
           );
@@ -278,6 +279,7 @@ class ApiService {
             pubDate: item.pubDate,
             isYoutubeVideo: false,
             sourceName: sourceName,
+            websiteName: _getWebsiteName(url),
             sourceIconUrl: _getIconUrl(item.link ?? url, feed.image?.url),
             imageUrl: imageUrl,
           );
@@ -299,5 +301,69 @@ class ApiService {
     if (feedIconUrl != null && feedIconUrl.isNotEmpty) return feedIconUrl;
     final uri = Uri.tryParse(itemLink);
     return uri != null ? 'https://www.google.com/s2/favicons?sz=64&domain_url=${uri.host}' : null;
+  }
+
+  /// URL'den website adını çıkarır
+  String _getWebsiteName(String url) {
+    try {
+      final uri = Uri.parse(url);
+      String host = uri.host;
+      
+      // www. prefix'ini kaldır
+      if (host.startsWith('www.')) {
+        host = host.substring(4);
+      }
+      
+      // Domain adından site ismini çıkar
+      final Map<String, String> domainToName = {
+        'donanimhaber.com': 'Donanım Haber',
+        'webrazzi.com': 'Webrazzi',
+        'teknoblog.com': 'Teknoblog',
+        'shiftdelete.net': 'ShiftDelete',
+        'webtekno.com': 'Webtekno',
+        'chip.com.tr': 'Chip Online',
+        'bilimvegelecek.com.tr': 'Bilim ve Gelecek',
+        'bilimteknik.tubitak.gov.tr': 'Bilim Teknik',
+        'bilimgunlugu.com': 'Bilim Günlüğü',
+        'populerbildim.com': 'Popüler Bilim',
+        'aspor.com.tr': 'A Spor',
+        'ntvspor.net': 'NTV Spor',
+        'fotomac.com.tr': 'Fotomaç',
+        'fanatik.com.tr': 'Fanatik',
+        'trtspor.com.tr': 'TRT Spor',
+        'sporx.com': 'Sporx',
+        'aa.com.tr': 'Anadolu Ajansı',
+        'ntv.com.tr': 'NTV',
+        'cnnturk.com': 'CNN Türk',
+        'sozcu.com.tr': 'Sözcü',
+        'cumhuriyet.com.tr': 'Cumhuriyet',
+        'haber7.net': 'Haber7',
+        'milliyet.com.tr': 'Milliyet',
+        'sabah.com.tr': 'Sabah',
+        'haberturk.com': 'Habertürk',
+        't24.com.tr': 'T24',
+        'gazeteduvar.com.tr': 'Gazete Duvar',
+        'birgun.net': 'BirGün',
+        'investing.com': 'Investing',
+        'dunya.com': 'Dünya',
+        'ekonomist.com.tr': 'Ekonomist',
+        'bloomberght.com': 'Bloomberg HT',
+        'beyazperde.com': 'Beyazperde',
+        'hurriyet.com.tr': 'Hürriyet',
+        'arkitera.com': 'Arkitera',
+        'sanathaber.com': 'Sanat Haber',
+        'kulturservisi.com': 'Kültür Servisi',
+        'edebiyathaber.net': 'Edebiyat Haber',
+        'muzehaberleri.com': 'Müze Haberleri',
+        'technologyreview.com': 'MIT Technology Review',
+        'edsurge.com': 'EdSurge',
+        'gamespot.com': 'GameSpot',
+        'bbci.co.uk': 'BBC',
+      };
+      
+      return domainToName[host] ?? host.split('.')[0].toUpperCase();
+    } catch (e) {
+      return 'Bilinmeyen Kaynak';
+    }
   }
 }

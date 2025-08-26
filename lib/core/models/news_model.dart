@@ -8,6 +8,7 @@ class HaberModel {
   final String? videoId;
   final String? thumbnailUrl;
   final String sourceName;
+  final String? websiteName;
   final String? sourceIconUrl;
   final String? imageUrl;
 
@@ -20,6 +21,7 @@ class HaberModel {
     this.videoId,
     this.thumbnailUrl,
     required this.sourceName,
+    this.websiteName,
     this.sourceIconUrl,
     this.imageUrl,
   });
@@ -33,6 +35,7 @@ class HaberModel {
     'videoId': videoId,
     'thumbnailUrl': thumbnailUrl,
     'sourceName': sourceName,
+    'websiteName': websiteName,
     'sourceIconUrl': sourceIconUrl,
     'imageUrl': imageUrl,
   };
@@ -46,6 +49,7 @@ class HaberModel {
     videoId: json['videoId'] as String?,
     thumbnailUrl: json['thumbnailUrl'] as String?,
     sourceName: json['sourceName'] as String,
+    websiteName: json['websiteName'] as String?,
     sourceIconUrl: json['sourceIconUrl'] as String?,
     imageUrl: json['imageUrl'] as String?,
   );
