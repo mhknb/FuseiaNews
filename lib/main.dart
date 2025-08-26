@@ -1,6 +1,6 @@
 // lib/main.dart
 
-import 'package:ai_content_flow_app/auth_check_screen.dart';
+import 'package:fuseia/auth_check_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
