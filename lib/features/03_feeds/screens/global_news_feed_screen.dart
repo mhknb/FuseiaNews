@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart' as ul;
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import 'web_view_screen.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
@@ -24,51 +25,119 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
   final GeminiApiService _geminiService = GeminiApiService();
   final ImageSearchService _imageSearchService = ImageSearchService();
   late Future<List<HaberModel>> _haberlerFuture;
+  bool _isBackgroundRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _haberlerFuture = _apiService.fetchGlobalNews();
+    _startBackgroundRefresh();
   }
 
-  /// Haber bağlantısını browser'da açar
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  /// Start background refresh when app becomes active
+  void _startBackgroundRefresh() {
+    // Start background refresh after initial load
+    Future.delayed(const Duration(seconds: 30), () {
+      if (mounted && !_isBackgroundRefreshing) {
+        _performBackgroundRefresh();
+      }
+    });
+  }
+
+  /// Perform background refresh without blocking UI
+  Future<void> _performBackgroundRefresh() async {
+    if (_isBackgroundRefreshing) return;
+
+    setState(() {
+      _isBackgroundRefreshing = true;
+    });
+
+    try {
+      // Refresh in background without blocking UI
+      final freshNews = await _apiService.fetchGlobalNews(forceRefresh: true);
+
+      if (mounted && freshNews.isNotEmpty) {
+        // Show a subtle notification that news has been updated
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Haberler güncellendi'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Update the future for next refresh
+        setState(() {
+          _haberlerFuture = Future.value(freshNews);
+        });
+      }
+    } catch (e) {
+      print('Background refresh failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBackgroundRefreshing = false;
+        });
+      }
+    }
+  }
+
+  /// Force refresh news data
+  Future<void> _refreshNews() async {
+    setState(() {
+      _haberlerFuture = _apiService.fetchGlobalNews(forceRefresh: true);
+    });
+  }
+
+  /// Haber bağlantısını Chrome Custom Tabs ile açar
   Future<void> _openInBrowser(String url) async {
-    
     try {
       final Uri uri = Uri.parse(url);
       
-      // Uygulama içi WebView ekranı (aşağı çekerek kapatma destekli)
-      if (!mounted) return;
-      await showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => DraggableScrollableSheet(
-          initialChildSize: 0.95,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          snap: true,
-          builder: (context, controller) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: WebViewScreen(url: url, title: 'Haber', asModal: true),
-            );
-          },
+      // Chrome Custom Tabs kullan - çok daha performanslı
+      await launchUrl(
+        uri,
+        customTabsOptions: const CustomTabsOptions(
+          shareState: CustomTabsShareState.on,
+          urlBarHidingEnabled: true,
+          showTitle: true,
+        ),
+        safariVCOptions: const SafariViewControllerOptions(
+          preferredBarTintColor: Colors.white,
+          preferredControlTintColor: Colors.blue,
+          barCollapsingEnabled: true,
+          dismissButtonStyle: SafariViewControllerDismissButtonStyle.close,
         ),
       );
-      return;
     } catch (e) {
-      print('URL açma hatası: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bağlantı açılamadı: $e'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+      print('Chrome Custom Tabs hatası, fallback URL launcher kullanılıyor: $e');
+      
+      // Fallback - eğer Custom Tabs çalışmazsa normal URL launcher kullan
+      try {
+        final Uri uri = Uri.parse(url);
+        if (await ul.canLaunchUrl(uri)) {
+          await ul.launchUrl(
+            uri,
+            mode: ul.LaunchMode.externalApplication,
+          );
+        } else {
+          throw 'URL açılamadı';
+        }
+      } catch (fallbackError) {
+        print('Fallback URL launcher hatası: $fallbackError');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Bağlantı açılamadı: $fallbackError'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     }
   }
@@ -281,31 +350,146 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
     );
   }
 
+  /// Loading view with shimmer effect
+  Widget _buildLoadingView() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      itemCount: 5, // Show 5 loading cards
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image placeholder
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(Icons.image, size: 48, color: Colors.grey),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Source name placeholder
+                    Container(
+                      width: 80,
+                      height: 12,
+                      color: Colors.grey[300],
+                      margin: const EdgeInsets.only(bottom: 8),
+                    ),
+                    // Title placeholder
+                    Container(
+                      width: double.infinity,
+                      height: 16,
+                      color: Colors.grey[300],
+                      margin: const EdgeInsets.only(bottom: 8),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.7,
+                      height: 16,
+                      color: Colors.grey[300],
+                      margin: const EdgeInsets.only(bottom: 12),
+                    ),
+                    // Description placeholder
+                    Container(
+                      width: double.infinity,
+                      height: 14,
+                      color: Colors.grey[300],
+                      margin: const EdgeInsets.only(bottom: 4),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      height: 14,
+                      color: Colors.grey[300],
+                      margin: const EdgeInsets.only(bottom: 12),
+                    ),
+                    // Bottom row placeholder
+                    Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 12,
+                          color: Colors.grey[300],
+                        ),
+                        const Spacer(),
+                        Container(
+                          width: 40,
+                          height: 12,
+                          color: Colors.grey[300],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<HaberModel>>(
       future: _haberlerFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return _buildLoadingView();
         } else if (snapshot.hasError) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(16.0), 
-              child: Text(
-                'Hata: ${snapshot.error}', 
-                textAlign: TextAlign.center
-              )
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Hata: ${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _haberlerFuture = _apiService.fetchGlobalNews();
+                      });
+                    },
+                    child: const Text('Tekrar Dene'),
+                  ),
+                ],
+              ),
             )
           );
         } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
           final haberler = snapshot.data!;
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {
-                _haberlerFuture = _apiService.fetchGlobalNews();
-              });
-            },
+          return Stack(
+            children: [
+              RefreshIndicator(
+                onRefresh: _refreshNews,
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               itemCount: haberler.length,
@@ -313,6 +497,43 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
                 return _buildNewsCard(haberler[index]);
               },
             ),
+          ),
+              // Background refresh indicator
+              if (_isBackgroundRefreshing)
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Güncelleniyor...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           );
         } else {
           return const Center(child: Text('Gösterilecek haber bulunamadı.'));
@@ -344,13 +565,13 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.web,
+              Icons.open_in_browser,
               color: Colors.white,
               size: 30,
             ),
             SizedBox(height: 8),
             Text(
-              'Uygulama İçi Aç',
+              'Chrome\'da Aç',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -363,11 +584,13 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface, // Dinamik tema rengi
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.black.withOpacity(0.08),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -378,95 +601,73 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
           child: InkWell(
             onTap: () => _summarizeAndShowPopup(haber),
             borderRadius: BorderRadius.circular(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (hasImage)
-                  Stack(
+            child: SizedBox(
+              height: 180,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final double imageWidth = constraints.maxHeight * 4 / 5; // 4:5 oranı
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                        child: Image.network(
-                          haber.imageUrl!,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, progress) => 
-                            progress == null ? child : const SizedBox(
-                              height: 200, 
-                              child: Center(child: CircularProgressIndicator())
-                            ),
-                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                        ),
-                      ),
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF374151),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            haber.sourceName.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(
+                // Sol taraf - Metin içeriği
+                Expanded(
+                  flex: 2, // 2/3 oranında genişlik
+                  child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        if (!hasImage) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
+                        // Üst kısım
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Kaynak adı etiketi
+                            Text(
                               haber.sourceName.toUpperCase(),
-                              style: const TextStyle(
-                                color: Color(0xFF374151),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
+                              style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? const Color(0xFF637588)
+                                    : const Color(0xFF637588),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        Text(
-                          haber.title,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            height: 1.3,
-                          ),
-                        ),
-                        if (haber.description.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            haber.description,
-                            maxLines: hasImage ? 2 : 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              height: 1.4,
+                            const SizedBox(height: 4),
+                            
+                            // Başlık
+                            Text(
+                              haber.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                height: 1.2,
+                                fontSize: 16,
+                              ),
                             ),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
+                            
+                            // Açıklama
+                            if (haber.description.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                haber.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark 
+                                      ? const Color(0xFF637588)
+                                      : const Color(0xFF637588),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        
+                        // Alt bilgiler
                         Row(
                           children: [
                             Container(
@@ -507,7 +708,52 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
                       ],
                     ),
                   ),
-              ],
+                ),
+                
+                const SizedBox(width: 16), // Metin ve görüntü arası boşluk
+                
+                // Sağ taraf - Kart yüksekliğinde görüntü
+                if (hasImage)
+                  SizedBox(
+                    width: imageWidth,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        haber.imageUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, progress) =>
+                            progress == null
+                                ? child
+                                : Container(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[800]
+                                        : Colors.grey[300],
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                    ),
+                                  ),
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[800]
+                              : Colors.grey[300],
+                          child: Icon(
+                            Icons.image_not_supported,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[600]
+                                : Colors.grey[400],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),

@@ -5,11 +5,13 @@ import 'package:webfeed_plus/webfeed_plus.dart';
 import '../models/news_model.dart';
 import '../utilis/constants.dart';
 import 'youtube_service.dart';
+import 'news_cache_service.dart';
 
 
 
 class ApiService {
   final YoutubeService _youtubeService = YoutubeService();
+  final NewsCacheService _cacheService = NewsCacheService();
 
 
   // İlgi alanı -> RSS kaynak listesi (Global akış bu listelerden beslenir)
@@ -87,36 +89,80 @@ class ApiService {
   };
 
   /// Global haber akışı için haberleri çeker.
-  Future<List<HaberModel>> fetchGlobalNews() async {
+  Future<List<HaberModel>> fetchGlobalNews({bool forceRefresh = false}) async {
+    print('🔍 fetchGlobalNews başladı - forceRefresh: $forceRefresh');
+    
+    // Check cache first unless force refresh is requested
+    if (!forceRefresh) {
+      final cachedNews = await _cacheService.getCachedNews();
+      if (cachedNews != null && cachedNews.isNotEmpty) {
+        print('✅ Cache\'den ${cachedNews.length} haber döndürüldü');
+        return cachedNews;
+      }
+      print('❌ Cache\'de haber bulunamadı');
+    }
+
     final prefs = await SharedPreferences.getInstance();
-   final userInterests = prefs.getStringList('user_interests') ?? [];
+    final userInterests = prefs.getStringList('user_interests') ?? [];
+
+    List<String> urlsToFetch = [];
 
     if (userInterests.isEmpty) {
-      // Varsayılan: Gündem kategorisindeki tüm kaynaklardan çek
+      // Varsayılan: Gündem kategorisindeki kaynaklardan çek (sınırlı sayıda)
       final defaultUrls = _interestToRssListMap['Gündem'] ?? [];
-      final futures = defaultUrls.map((url) => _fetchNewsFromUrl(url, 'Gündem'));
-      final results = await Future.wait(futures);
-      final allNews = results.expand((list) => list).toList();
-      allNews.sort((a, b) => b.pubDate?.compareTo(a.pubDate ?? DateTime(0)) ?? 0);
-      return allNews;
-    }
-
-    List<Future<List<HaberModel>>> futures = [];
-
-    for (String interest in userInterests) {
-      final urls = _interestToRssListMap[interest];
-      if (urls != null && urls.isNotEmpty) {
-        for (final url in urls) {
-          futures.add(_fetchNewsFromUrl(url, interest));
+      // İlk 5 kaynağı al - performansı artırmak için
+      urlsToFetch = defaultUrls.take(5).toList();
+    } else {
+      // Kullanıcının ilgi alanlarından kaynakları topla ve sınırla
+      for (String interest in userInterests) {
+        final urls = _interestToRssListMap[interest];
+        if (urls != null && urls.isNotEmpty) {
+          // Her kategoriden maksimum 3 kaynak al
+          urlsToFetch.addAll(urls.take(3));
         }
       }
+      // Toplam maksimum 12 kaynakla sınırla
+      urlsToFetch = urlsToFetch.take(12).toList();
     }
 
-    final results = await Future.wait(futures);
-    List<HaberModel> allNews = results.expand((list) => list).toList();
+    if (urlsToFetch.isEmpty) {
+      return [];
+    }
+
+    // Paralel istek sayısı sınırla (maksimum 6 paralel istek)
+    final batchSize = 6;
+    List<HaberModel> allNews = [];
+
+    for (int i = 0; i < urlsToFetch.length; i += batchSize) {
+      final batch = urlsToFetch.skip(i).take(batchSize);
+      final futures = batch.map((url) {
+        final category = _getCategoryForUrl(url);
+        return _fetchNewsFromUrl(url, category);
+      });
+
+      final results = await Future.wait(futures);
+      allNews.addAll(results.expand((list) => list).toList());
+    }
+
     allNews.sort((a, b) => b.pubDate?.compareTo(a.pubDate ?? DateTime(0)) ?? 0);
 
+    print('🎯 Toplam ${allNews.length} haber toplandı');
+
+    // Cache the results for future use
+    await _cacheService.cacheNews(allNews);
+    print('💾 Haberler cache\'e kaydedildi');
+
     return allNews;
+  }
+
+  /// URL için kategori adını bul
+  String _getCategoryForUrl(String url) {
+    for (final entry in _interestToRssListMap.entries) {
+      if (entry.value.contains(url)) {
+        return entry.key;
+      }
+    }
+    return 'Genel';
   }
 
   /// Kullanıcının seçtiği ve eklediği tüm kişisel kaynaklardan (RSS ve YouTube) haberleri çeker.
@@ -175,16 +221,19 @@ class ApiService {
   /// Verilen bir URL'den RSS veya Atom beslemesini çeker ve HaberModel listesine dönüştürür.
   Future<List<HaberModel>> _fetchNewsFromUrl(String url, String sourceName) async {
     try {
+      print('📡 RSS/Atom fetch başladı: $url');
       final headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
       };
       final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 20));
 
       if (response.statusCode != 200) {
+        print('❌ HTTP hatası: ${response.statusCode} - $url');
         throw Exception('Feed yüklenemedi. Kod: ${response.statusCode}');
       }
 
       final responseBody = utf8.decode(response.bodyBytes);
+      print('✅ RSS/Atom yüklendi: ${responseBody.length} karakter - $url');
       List<HaberModel> newsList = [];
 
 
@@ -234,8 +283,10 @@ class ApiService {
           );
         }).toList() ?? [];
       } else {
+        print('❌ Geçersiz format: $url');
         throw Exception('Geçerli bir RSS veya Atom formatı değil.');
       }
+      print('✅ ${newsList.length} haber parse edildi: $url');
       return newsList;
 
     } catch (e) {

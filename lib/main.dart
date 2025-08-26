@@ -37,11 +37,12 @@ class MyApp extends StatelessWidget {
     const Color chipBackgroundColor = Color(0xFFF3F4F6); // Light gray for chips
     const Color chipTextColor = Color(0xFF374151); // Dark gray for chip text
 
-
-    return MaterialApp(
-      title: 'HAG Content Flow',
-      debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.light, // Force light theme for consistency
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'HAG Content Flow',
+          debugShowCheckedModeBanner: false,
+          themeMode: themeProvider.themeMode, // Provider'dan dinamik tema
 
       theme: ThemeData(
         brightness: Brightness.light,
@@ -141,15 +142,17 @@ class MyApp extends StatelessWidget {
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: true,
-
+        scaffoldBackgroundColor: darkBackgroundColor,
+        
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryColor,
           brightness: Brightness.dark,
-
           primary: primaryColor,
           secondary: secondaryColor,
           background: darkBackgroundColor,
-          surface: Color(0xFF121212),
+          surface: const Color(0xFF1E1E1E), // Kart arka plan rengi
+          onSurface: Colors.white, // Kart üzerindeki metin rengi
+          onBackground: Colors.white, // Arka plan üzerindeki metin rengi
         ),
 
 
@@ -201,9 +204,11 @@ class MyApp extends StatelessWidget {
 
 
         cardTheme: CardThemeData(
-          color: Colors.grey[850],
+          color: const Color(0xFF1E1E1E), // Koyu gri kart arka planı
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shadowColor: Colors.black.withOpacity(0.3),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
 
         // Yazı Stili Teması
@@ -236,8 +241,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-// Temalar arası geçişi sağlayan ThemeProvider kullanımı
-      home: const AuthCheckScreen(),
+          // Temalar arası geçişi sağlayan ThemeProvider kullanımı
+          home: const AuthCheckScreen(),
+        );
+      },
     );
   }
 }

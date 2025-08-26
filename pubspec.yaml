@@ -48,6 +48,8 @@ dependencies:
   google_fonts: ^6.1.0
   flutter_custom_tabs: ^2.0.0
   webview_flutter: ^4.7.0
+  webview_flutter_android: ^3.16.0
+  webview_flutter_wkwebview: ^3.13.0
 
 dev_dependencies:
   flutter_test:

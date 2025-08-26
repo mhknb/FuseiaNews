@@ -23,4 +23,30 @@ class HaberModel {
     this.sourceIconUrl,
     this.imageUrl,
   });
+
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'description': description,
+    'link': link,
+    'pubDate': pubDate?.toIso8601String(),
+    'isYoutubeVideo': isYoutubeVideo,
+    'videoId': videoId,
+    'thumbnailUrl': thumbnailUrl,
+    'sourceName': sourceName,
+    'sourceIconUrl': sourceIconUrl,
+    'imageUrl': imageUrl,
+  };
+
+  factory HaberModel.fromJson(Map<String, dynamic> json) => HaberModel(
+    title: json['title'] as String,
+    description: json['description'] as String,
+    link: json['link'] as String,
+    pubDate: json['pubDate'] != null ? DateTime.parse(json['pubDate'] as String) : null,
+    isYoutubeVideo: json['isYoutubeVideo'] as bool? ?? false,
+    videoId: json['videoId'] as String?,
+    thumbnailUrl: json['thumbnailUrl'] as String?,
+    sourceName: json['sourceName'] as String,
+    sourceIconUrl: json['sourceIconUrl'] as String?,
+    imageUrl: json['imageUrl'] as String?,
+  );
 }
