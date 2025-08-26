@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart' as fct;
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_search_service.dart';
@@ -47,33 +48,44 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
     try {
       final Uri uri = Uri.parse(url);
       
-      // In-App Browser ile açmayı dene (hem Android hem iOS)
+      // Öncelik: Chrome Custom Tabs / SafariVC
       try {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.inAppWebView,
-          webViewConfiguration: const WebViewConfiguration(
-            enableJavaScript: true,
-            enableDomStorage: true,
-            headers: {
-              'User-Agent': 'AI Content Flow App',
-            },
+        await fct.launch(
+          url,
+          customTabsOption: const fct.CustomTabsOption(
+            showPageTitle: true,
+            enableUrlBarHiding: true,
+            enableInstantApps: true,
+          ),
+          safariVCOptions: const fct.SafariViewControllerOption(
+            barCollapsingEnabled: true,
+            entersReaderIfAvailable: false,
+            preferredBarTintColor: null,
+            preferredControlTintColor: null,
+            dismissButtonStyle: fct.SafariViewControllerDismissButtonStyle.close,
           ),
         );
         return;
       } catch (e) {
-        print('In-App Browser başarısız: $e, external browser ile deniyorum...');
-        
-        // Fallback: External browser
+        print('Custom Tabs/SafariVC başarısız: $e, inAppWebView ile deniyorum...');
+        // Fallback: In-App WebView
         try {
+          await launchUrl(
+            uri,
+            mode: LaunchMode.inAppWebView,
+            webViewConfiguration: const WebViewConfiguration(
+              enableJavaScript: true,
+              enableDomStorage: true,
+            ),
+          );
+          return;
+        } catch (_) {
+          // Son fallback: external
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri, mode: LaunchMode.externalApplication);
           } else {
             throw Exception('URL açılamadı');
           }
-        } catch (fallbackError) {
-          print('External browser da başarısız: $fallbackError');
-          throw Exception('Hiçbir yöntem çalışmadı');
         }
       }
     } catch (e) {

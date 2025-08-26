@@ -46,6 +46,7 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   provider: ^6.1.2
   google_fonts: ^6.1.0
+  flutter_custom_tabs: ^2.0.0
 
 dev_dependencies:
   flutter_test:
