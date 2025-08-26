@@ -52,11 +52,24 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
       
       // Uygulama içi WebView ekranı (aşağı çekerek kapatma destekli)
       if (!mounted) return;
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => WebViewScreen(url: url, title: 'Haber', asModal: true),
-          fullscreenDialog: true,
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => DraggableScrollableSheet(
+          initialChildSize: 0.95,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          snap: true,
+          builder: (context, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: WebViewScreen(url: url, title: 'Haber', asModal: true),
+            );
+          },
         ),
       );
       return;
