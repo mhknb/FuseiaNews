@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_custom_tabs/flutter_custom_tabs.dart' as fct;
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_search_service.dart';
@@ -48,21 +48,19 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
     try {
       final Uri uri = Uri.parse(url);
       
-      // Öncelik: Chrome Custom Tabs / SafariVC
+      // Öncelik: Chrome Custom Tabs (Android) / SafariVC (iOS)
       try {
-        await fct.launch(
+        await launch(
           url,
-          customTabsOption: const fct.CustomTabsOption(
+          option: const CustomTabsOption(
             showPageTitle: true,
             enableUrlBarHiding: true,
-            enableInstantApps: true,
-          ),
-          safariVCOptions: const fct.SafariViewControllerOption(
-            barCollapsingEnabled: true,
-            entersReaderIfAvailable: false,
-            preferredBarTintColor: null,
-            preferredControlTintColor: null,
-            dismissButtonStyle: fct.SafariViewControllerDismissButtonStyle.close,
+            enableDefaultShare: true,
+            animation: CustomTabsAnimation.slideIn(),
+            extraCustomTabs: <String>[
+              'org.mozilla.firefox',
+              'com.microsoft.emmx',
+            ],
           ),
         );
         return;
