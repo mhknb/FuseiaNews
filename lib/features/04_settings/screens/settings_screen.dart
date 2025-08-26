@@ -16,6 +16,55 @@ class RssSource {
   factory RssSource.fromJson(Map<String, dynamic> json) => RssSource(name: json['name'], url: json['url']);
 }
 
+// Varsayılan RSS kaynakları (ilk açılışta otomatik yüklenecek)
+final List<RssSource> kDefaultRssSources = [
+  RssSource(name: 'Anadolu Ajansı (AA)', url: 'https://www.aa.com.tr/tr/rss/default?cat=guncel'),
+  RssSource(name: 'NTV', url: 'https://www.ntv.com.tr/gundem.rss'),
+  RssSource(name: 'CNN Türk', url: 'https://www.cnnturk.com/feed/rss/all/news'),
+  RssSource(name: 'Sözcü', url: 'https://www.sozcu.com.tr/rss.xml'),
+  RssSource(name: 'Cumhuriyet', url: 'http://www.cumhuriyet.com.tr/rss/son_dakika.xml'),
+  RssSource(name: 'Haber7', url: 'https://i12.haber7.net/rss/sondakika.xml'),
+  RssSource(name: 'Milliyet', url: 'https://www.milliyet.com.tr/rss/rssNew/gundemRss.xml'),
+  RssSource(name: 'Sabah', url: 'https://www.sabah.com.tr/rss/gundem.xml'),
+  RssSource(name: 'Habertürk Ekonomi', url: 'https://www.haberturk.com/rss/kategori/ekonomi.xml'),
+  RssSource(name: 'AA Ekonomi', url: 'https://www.aa.com.tr/tr/rss/default?cat=ekonomi'),
+  RssSource(name: 'Investing.com Türkiye', url: 'https://tr.investing.com/rss/news.rss'),
+  RssSource(name: 'Dünya Gazetesi', url: 'https://www.dunya.com/rss'),
+  RssSource(name: 'Ekonomist', url: 'https://www.ekonomist.com.tr/rss.xml'),
+  RssSource(name: 'Bloomberg HT', url: 'https://www.bloomberght.com/rss'),
+  RssSource(name: 'A Spor', url: 'https://www.aspor.com.tr/rss.xml'),
+  RssSource(name: 'NTV Spor', url: 'https://www.ntvspor.net/rss'),
+  RssSource(name: 'Fotomaç', url: 'https://www.fotomac.com.tr/rss.xml'),
+  RssSource(name: 'Fanatik', url: 'https://www.fanatik.com.tr/rss.xml'),
+  RssSource(name: 'TRT Spor', url: 'https://www.trtspor.com.tr/rss.xml'),
+  RssSource(name: 'Sporx', url: 'https://www.sporx.com/rss.xml'),
+  RssSource(name: 'Donanım Haber', url: 'https://www.donanimhaber.com/rss.xml'),
+  RssSource(name: 'Webrazzi', url: 'https://webrazzi.com/feed/'),
+  RssSource(name: 'Teknoblog', url: 'https://www.teknoblog.com/feed/'),
+  RssSource(name: 'ShiftDelete.Net', url: 'https://shiftdelete.net/feed'),
+  RssSource(name: 'Webtekno', url: 'https://www.webtekno.com/rss.xml'),
+  RssSource(name: 'Chip Online', url: 'https://www.chip.com.tr/rss.xml'),
+  RssSource(name: 'Beyaz Perde', url: 'https://www.beyazperde.com/rss/haberler.xml'),
+  RssSource(name: 'Onedio', url: 'https://onedio.com/rss.xml'),
+  RssSource(name: 'Habertürk Magazin', url: 'https://www.haberturk.com/rss/kategori/magazin.xml'),
+  RssSource(name: 'Milliyet Magazin', url: 'https://www.milliyet.com.tr/rss/rssNew/magazinRss.xml'),
+  RssSource(name: 'Hürriyet Magazin', url: 'https://www.hurriyet.com.tr/rss/magazin'),
+  RssSource(name: 'AA Politika', url: 'https://www.aa.com.tr/tr/rss/default?cat=politika'),
+  RssSource(name: 'Habertürk Gündem', url: 'https://www.haberturk.com/rss/kategori/gundem.xml'),
+  RssSource(name: 'T24', url: 'https://t24.com.tr/rss'),
+  RssSource(name: 'Gazete Duvar', url: 'https://www.gazeteduvar.com.tr/rss.xml'),
+  RssSource(name: 'BirGün', url: 'https://www.birgun.net/rss'),
+  RssSource(name: 'Arkitera', url: 'https://www.arkitera.com/rss.xml'),
+  RssSource(name: 'Sanat Haberleri', url: 'https://sanathaber.com/rss.xml'),
+  RssSource(name: 'Kültür Servisi', url: 'https://kulturservisi.com/rss.xml'),
+  RssSource(name: 'Edebiyat Haber', url: 'https://www.edebiyathaber.net/rss.xml'),
+  RssSource(name: 'Müze Haberleri', url: 'https://muzehaberleri.com/rss.xml'),
+  RssSource(name: 'Bilim ve Gelecek', url: 'https://bilimvegelecek.com.tr/rss.xml'),
+  RssSource(name: 'TÜBİTAK Bilim Teknik', url: 'https://bilimteknik.tubitak.gov.tr/rss.xml'),
+  RssSource(name: 'Bilim Günlüğü', url: 'https://www.bilimgunlugu.com/rss.xml'),
+  RssSource(name: 'Popular Science Türkiye', url: 'https://www.populerbildim.com/rss.xml'),
+];
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -60,9 +109,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _youtubeChannels = prefs.getStringList('youtube_channels') ?? [];
 
     final String? rssJson = prefs.getString('user_custom_sources');
-    if (rssJson != null) {
+    if (rssJson != null && rssJson.isNotEmpty) {
       final List<dynamic> decodedList = jsonDecode(rssJson);
       _rssSources = decodedList.map((item) => RssSource.fromJson(item)).toList();
+    } else {
+      // İlk yüklemede varsayılan kaynakları uygula ve kalıcı olarak kaydet
+      _rssSources = List<RssSource>.from(kDefaultRssSources);
+      final List<Map<String, dynamic>> encodedRssList = _rssSources.map((s) => s.toJson()).toList();
+      await prefs.setString('user_custom_sources', jsonEncode(encodedRssList));
     }
 
     setState(() => _isLoading = false);
