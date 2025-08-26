@@ -57,9 +57,62 @@ class ApiService {
 
 
    final String? customSourcesJson = prefs.getString('user_custom_sources');
-    final List<dynamic> customRssList = (customSourcesJson != null && customSourcesJson.isNotEmpty)
+    List<dynamic> customRssList = (customSourcesJson != null && customSourcesJson.isNotEmpty)
         ? jsonDecode(customSourcesJson)
         : [];
+
+    // Eğer kullanıcı ayarlar ekranını hiç açmadıysa varsayılan RSS kaynaklarını otomatik yükle
+    if (customRssList.isEmpty) {
+      final List<Map<String, String>> defaultSources = [
+        {'name': 'Anadolu Ajansı (AA)', 'url': 'https://www.aa.com.tr/tr/rss/default?cat=guncel'},
+        {'name': 'NTV', 'url': 'https://www.ntv.com.tr/gundem.rss'},
+        {'name': 'CNN Türk', 'url': 'https://www.cnnturk.com/feed/rss/all/news'},
+        {'name': 'Sözcü', 'url': 'https://www.sozcu.com.tr/rss.xml'},
+        {'name': 'Cumhuriyet', 'url': 'http://www.cumhuriyet.com.tr/rss/son_dakika.xml'},
+        {'name': 'Haber7', 'url': 'https://i12.haber7.net/rss/sondakika.xml'},
+        {'name': 'Milliyet', 'url': 'https://www.milliyet.com.tr/rss/rssNew/gundemRss.xml'},
+        {'name': 'Sabah', 'url': 'https://www.sabah.com.tr/rss/gundem.xml'},
+        {'name': 'Habertürk Ekonomi', 'url': 'https://www.haberturk.com/rss/kategori/ekonomi.xml'},
+        {'name': 'AA Ekonomi', 'url': 'https://www.aa.com.tr/tr/rss/default?cat=ekonomi'},
+        {'name': 'Investing.com Türkiye', 'url': 'https://tr.investing.com/rss/news.rss'},
+        {'name': 'Dünya Gazetesi', 'url': 'https://www.dunya.com/rss'},
+        {'name': 'Ekonomist', 'url': 'https://www.ekonomist.com.tr/rss.xml'},
+        {'name': 'Bloomberg HT', 'url': 'https://www.bloomberght.com/rss'},
+        {'name': 'A Spor', 'url': 'https://www.aspor.com.tr/rss.xml'},
+        {'name': 'NTV Spor', 'url': 'https://www.ntvspor.net/rss'},
+        {'name': 'Fotomaç', 'url': 'https://www.fotomac.com.tr/rss.xml'},
+        {'name': 'Fanatik', 'url': 'https://www.fanatik.com.tr/rss.xml'},
+        {'name': 'TRT Spor', 'url': 'https://www.trtspor.com.tr/rss.xml'},
+        {'name': 'Sporx', 'url': 'https://www.sporx.com/rss.xml'},
+        {'name': 'Donanım Haber', 'url': 'https://www.donanimhaber.com/rss.xml'},
+        {'name': 'Webrazzi', 'url': 'https://webrazzi.com/feed/'},
+        {'name': 'Teknoblog', 'url': 'https://www.teknoblog.com/feed/'},
+        {'name': 'ShiftDelete.Net', 'url': 'https://shiftdelete.net/feed'},
+        {'name': 'Webtekno', 'url': 'https://www.webtekno.com/rss.xml'},
+        {'name': 'Chip Online', 'url': 'https://www.chip.com.tr/rss.xml'},
+        {'name': 'Beyaz Perde', 'url': 'https://www.beyazperde.com/rss/haberler.xml'},
+        {'name': 'Onedio', 'url': 'https://onedio.com/rss.xml'},
+        {'name': 'Habertürk Magazin', 'url': 'https://www.haberturk.com/rss/kategori/magazin.xml'},
+        {'name': 'Milliyet Magazin', 'url': 'https://www.milliyet.com.tr/rss/rssNew/magazinRss.xml'},
+        {'name': 'Hürriyet Magazin', 'url': 'https://www.hurriyet.com.tr/rss/magazin'},
+        {'name': 'AA Politika', 'url': 'https://www.aa.com.tr/tr/rss/default?cat=politika'},
+        {'name': 'Habertürk Gündem', 'url': 'https://www.haberturk.com/rss/kategori/gundem.xml'},
+        {'name': 'T24', 'url': 'https://t24.com.tr/rss'},
+        {'name': 'Gazete Duvar', 'url': 'https://www.gazeteduvar.com.tr/rss.xml'},
+        {'name': 'BirGün', 'url': 'https://www.birgun.net/rss'},
+        {'name': 'Arkitera', 'url': 'https://www.arkitera.com/rss.xml'},
+        {'name': 'Sanat Haberleri', 'url': 'https://sanathaber.com/rss.xml'},
+        {'name': 'Kültür Servisi', 'url': 'https://kulturservisi.com/rss.xml'},
+        {'name': 'Edebiyat Haber', 'url': 'https://www.edebiyathaber.net/rss.xml'},
+        {'name': 'Müze Haberleri', 'url': 'https://muzehaberleri.com/rss.xml'},
+        {'name': 'Bilim ve Gelecek', 'url': 'https://bilimvegelecek.com.tr/rss.xml'},
+        {'name': 'TÜBİTAK Bilim Teknik', 'url': 'https://bilimteknik.tubitak.gov.tr/rss.xml'},
+        {'name': 'Bilim Günlüğü', 'url': 'https://www.bilimgunlugu.com/rss.xml'},
+        {'name': 'Popular Science Türkiye', 'url': 'https://www.populerbildim.com/rss.xml'},
+      ];
+      await prefs.setString('user_custom_sources', jsonEncode(defaultSources));
+      customRssList = defaultSources;
+    }
 
 
     final customYoutubeUrls = prefs.getStringList('youtube_channels') ?? [];
