@@ -111,12 +111,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final String? rssJson = prefs.getString('user_custom_sources');
     if (rssJson != null && rssJson.isNotEmpty) {
       final List<dynamic> decodedList = jsonDecode(rssJson);
-      _rssSources = decodedList.map((item) => RssSource.fromJson(item)).toList();
+      // Varsayılan/global kaynak URL'lerini kişisel listeden ayıkla
+      final Set<String> defaultUrls = kDefaultRssSources.map((e) => e.url).toSet();
+      final filtered = decodedList.where((item) {
+        if (item is Map<String, dynamic> && item.containsKey('url')) {
+          return !defaultUrls.contains(item['url']);
+        }
+        return true;
+      }).toList();
+
+      _rssSources = filtered.map((item) => RssSource.fromJson(item)).toList();
+
+      // Eğer bir şey temizlendiyse depoyu güncelle
+      if (filtered.length != decodedList.length) {
+        await prefs.setString('user_custom_sources', jsonEncode(filtered));
+      }
     } else {
-      // İlk yüklemede varsayılan kaynakları uygula ve kalıcı olarak kaydet
-      _rssSources = List<RssSource>.from(kDefaultRssSources);
-      final List<Map<String, dynamic>> encodedRssList = _rssSources.map((s) => s.toJson()).toList();
-      await prefs.setString('user_custom_sources', jsonEncode(encodedRssList));
+      // Artık otomatik varsayılan ekleme YOK. Liste boş bırakılır.
+      _rssSources = [];
     }
 
     setState(() => _isLoading = false);
