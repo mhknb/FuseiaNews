@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
+import 'package:url_launcher/url_launcher.dart' as ul;
+import 'package:flutter_custom_tabs/flutter_custom_tabs.dart' as ct;
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_search_service.dart';
@@ -50,14 +50,14 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
       
       // Öncelik: Chrome Custom Tabs (Android) / SafariVC (iOS)
       try {
-        await launch(
+        await ct.launch(
           url,
-          option: const CustomTabsOption(
+          option: ct.CustomTabsOption(
             showPageTitle: true,
             enableUrlBarHiding: true,
             enableDefaultShare: true,
-            animation: CustomTabsAnimation.slideIn(),
-            extraCustomTabs: <String>[
+            animation: ct.CustomTabsAnimation.slideIn(),
+            extraCustomTabs: const <String>[
               'org.mozilla.firefox',
               'com.microsoft.emmx',
             ],
@@ -68,10 +68,10 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
         print('Custom Tabs/SafariVC başarısız: $e, inAppWebView ile deniyorum...');
         // Fallback: In-App WebView
         try {
-          await launchUrl(
+          await ul.launchUrl(
             uri,
-            mode: LaunchMode.inAppWebView,
-            webViewConfiguration: const WebViewConfiguration(
+            mode: ul.LaunchMode.inAppWebView,
+            webViewConfiguration: const ul.WebViewConfiguration(
               enableJavaScript: true,
               enableDomStorage: true,
             ),
@@ -79,8 +79,8 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
           return;
         } catch (_) {
           // Son fallback: external
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          if (await ul.canLaunchUrl(uri)) {
+            await ul.launchUrl(uri, mode: ul.LaunchMode.externalApplication);
           } else {
             throw Exception('URL açılamadı');
           }
