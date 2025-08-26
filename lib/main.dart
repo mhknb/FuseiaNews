@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'HAG Content Flow',
+                           title: 'Fuseia',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode, // Provider'dan dinamik tema
 
