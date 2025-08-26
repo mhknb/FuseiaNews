@@ -12,17 +12,78 @@ class ApiService {
   final YoutubeService _youtubeService = YoutubeService();
 
 
-  final Map<String, String> _interestToRssMap = {
-    'Teknoloji': 'http://feeds.bbci.co.uk/news/technology/rss.xml',
-    'Bilim': 'http://feeds.bbci.co.uk/news/science_and_environment/rss.xml',
-    'Sağlık': 'http://feeds.bbci.co.uk/news/health/rss.xml',
-    'Spor': 'https://feeds.skynews.com/feeds/rss/sports.xml',
-    'Gündem': 'http://feeds.bbci.co.uk/news/rss.xml',
-    'Yapay Zeka': 'https://www.technologyreview.com/feed/',
-    'Finans': 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',
-    'Oyun': 'https://www.gamespot.com/feeds/news/',
-    'Sinema': 'https://www.cinemablend.com/rss/news.xml',
-    'Eğitim': 'https://www.edsurge.com/news/rss',
+  // İlgi alanı -> RSS kaynak listesi (Global akış bu listelerden beslenir)
+  final Map<String, List<String>> _interestToRssListMap = {
+    'Teknoloji': [
+      'https://www.donanimhaber.com/rss.xml',
+      'https://webrazzi.com/feed/',
+      'https://www.teknoblog.com/feed/',
+      'https://shiftdelete.net/feed',
+      'https://www.webtekno.com/rss.xml',
+      'https://www.chip.com.tr/rss.xml',
+    ],
+    'Bilim': [
+      'https://bilimvegelecek.com.tr/rss.xml',
+      'https://bilimteknik.tubitak.gov.tr/rss.xml',
+      'https://www.bilimgunlugu.com/rss.xml',
+      'https://www.populerbildim.com/rss.xml',
+    ],
+    'Spor': [
+      'https://www.aspor.com.tr/rss.xml',
+      'https://www.ntvspor.net/rss',
+      'https://www.fotomac.com.tr/rss.xml',
+      'https://www.fanatik.com.tr/rss.xml',
+      'https://www.trtspor.com.tr/rss.xml',
+      'https://www.sporx.com/rss.xml',
+    ],
+    'Gündem': [
+      'https://www.aa.com.tr/tr/rss/default?cat=guncel',
+      'https://www.ntv.com.tr/gundem.rss',
+      'https://www.cnnturk.com/feed/rss/all/news',
+      'https://www.sozcu.com.tr/rss.xml',
+      'http://www.cumhuriyet.com.tr/rss/son_dakika.xml',
+      'https://i12.haber7.net/rss/sondakika.xml',
+      'https://www.milliyet.com.tr/rss/rssNew/gundemRss.xml',
+      'https://www.sabah.com.tr/rss/gundem.xml',
+      'https://www.haberturk.com/rss/kategori/gundem.xml',
+      'https://t24.com.tr/rss',
+      'https://www.gazeteduvar.com.tr/rss.xml',
+      'https://www.birgun.net/rss',
+    ],
+    'Finans': [
+      'https://www.haberturk.com/rss/kategori/ekonomi.xml',
+      'https://www.aa.com.tr/tr/rss/default?cat=ekonomi',
+      'https://tr.investing.com/rss/news.rss',
+      'https://www.dunya.com/rss',
+      'https://www.ekonomist.com.tr/rss.xml',
+      'https://www.bloomberght.com/rss',
+    ],
+    'Sinema': [
+      'https://www.beyazperde.com/rss/haberler.xml',
+      'https://www.haberturk.com/rss/kategori/magazin.xml',
+      'https://www.milliyet.com.tr/rss/rssNew/magazinRss.xml',
+      'https://www.hurriyet.com.tr/rss/magazin',
+    ],
+    'Kültür & Sanat': [
+      'https://www.arkitera.com/rss.xml',
+      'https://sanathaber.com/rss.xml',
+      'https://kulturservisi.com/rss.xml',
+      'https://www.edebiyathaber.net/rss.xml',
+      'https://muzehaberleri.com/rss.xml',
+    ],
+    // Yedek: tekli kaynaklarla çalışan kategoriler
+    'Yapay Zeka': [
+      'https://www.technologyreview.com/feed/',
+    ],
+    'Eğitim': [
+      'https://www.edsurge.com/news/rss',
+    ],
+    'Oyun': [
+      'https://www.gamespot.com/feeds/news/',
+    ],
+    'Sağlık': [
+      'http://feeds.bbci.co.uk/news/health/rss.xml',
+    ],
   };
 
   /// Global haber akışı için haberleri çeker.
@@ -31,15 +92,23 @@ class ApiService {
    final userInterests = prefs.getStringList('user_interests') ?? [];
 
     if (userInterests.isEmpty) {
-      return _fetchNewsFromUrl(_interestToRssMap['Gündem']!, 'Gündem');
+      // Varsayılan: Gündem kategorisindeki tüm kaynaklardan çek
+      final defaultUrls = _interestToRssListMap['Gündem'] ?? [];
+      final futures = defaultUrls.map((url) => _fetchNewsFromUrl(url, 'Gündem'));
+      final results = await Future.wait(futures);
+      final allNews = results.expand((list) => list).toList();
+      allNews.sort((a, b) => b.pubDate?.compareTo(a.pubDate ?? DateTime(0)) ?? 0);
+      return allNews;
     }
 
     List<Future<List<HaberModel>>> futures = [];
 
     for (String interest in userInterests) {
-      if (_interestToRssMap.containsKey(interest)) {
-        String url = _interestToRssMap[interest]!;
-        futures.add(_fetchNewsFromUrl(url, interest));
+      final urls = _interestToRssListMap[interest];
+      if (urls != null && urls.isNotEmpty) {
+        for (final url in urls) {
+          futures.add(_fetchNewsFromUrl(url, interest));
+        }
       }
     }
 
