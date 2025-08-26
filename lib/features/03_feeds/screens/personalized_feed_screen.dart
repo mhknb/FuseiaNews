@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart' as ul;
-import 'package:flutter_custom_tabs/flutter_custom_tabs.dart' as ct;
+import 'web_view_screen.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_search_service.dart';
@@ -50,44 +50,16 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     try {
       final Uri uri = Uri.parse(url);
       
-      // Öncelik: Chrome Custom Tabs (Android) / SafariVC (iOS)
-      try {
-        await ct.launch(
-          url,
-          option: ct.CustomTabsOption(
-            showPageTitle: true,
-            enableUrlBarHiding: true,
-            enableDefaultShare: true,
-            animation: ct.CustomTabsAnimation.slideIn(),
-            extraCustomTabs: const <String>[
-              'org.mozilla.firefox',
-              'com.microsoft.emmx',
-            ],
-          ),
-        );
-        return;
-      } catch (e) {
-        print('Custom Tabs/SafariVC başarısız: $e, inAppWebView ile deniyorum...');
-        // Fallback: In-App WebView
-        try {
-          await ul.launchUrl(
-            uri,
-            mode: ul.LaunchMode.inAppWebView,
-            webViewConfiguration: const ul.WebViewConfiguration(
-              enableJavaScript: true,
-              enableDomStorage: true,
-            ),
-          );
-          return;
-        } catch (_) {
-          // Son fallback: external
-          if (await ul.canLaunchUrl(uri)) {
-            await ul.launchUrl(uri, mode: ul.LaunchMode.externalApplication);
-          } else {
-            throw Exception('URL açılamadı');
-          }
-        }
-      }
+      // Uygulama içi WebView ekranı (aşağı çekerek kapatma destekli)
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WebViewScreen(url: url, title: 'Haber', asModal: true),
+          fullscreenDialog: true,
+        ),
+      );
+      return;
     } catch (e) {
       print('URL açma hatası: $e');
       if (mounted) {
