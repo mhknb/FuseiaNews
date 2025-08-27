@@ -12,6 +12,7 @@ import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_search_service.dart';
 import '../../../core/models/news_model.dart';
+import '../widgets/news_list_item.dart';
 import '../../04_settings/screens/settings_screen.dart';
 
 class PersonalizedFeedScreen extends StatefulWidget {
@@ -70,13 +71,13 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
         }
       } catch (fallbackError) {
         print('Fallback URL launcher hatası: $fallbackError');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
               content: Text('Bağlantı açılamadı: $fallbackError'),
               duration: const Duration(seconds: 3),
-            ),
-          );
+          ),
+        );
         }
       }
     }
@@ -95,7 +96,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
 
     if (mounted) setState(() => _loadingStatus = 'Haberler çevriliyor...');
 
-    // Sadece RSS/Atom haberlerini çevir (YouTube başlıkları genellikle zaten anlaşılır)
+      // Sadece RSS/Atom haberlerini çevir (YouTube başlıkları genellikle zaten anlaşılır)
     final rssNews = newsList.where((haber) => !haber.isYoutubeVideo).toList();
 
     if (rssNews.isEmpty) return newsList;
@@ -365,7 +366,44 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               itemCount: haberler.length,
               itemBuilder: (context, index) {
-                return _buildNewsCard(haberler[index]);
+                final haber = haberler[index];
+                return Dismissible(
+                  key: Key(haber.link),
+                  direction: DismissDirection.endToStart,
+                  confirmDismiss: (direction) async {
+                    await _openInBrowser(haber.link);
+                    return false;
+                  },
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20.0),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.open_in_browser, color: Colors.white, size: 28),
+                  ),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.black.withOpacity(0.3)
+                              : Colors.black.withOpacity(0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: NewsListItem(
+                      haber: haber,
+                      onTap: () => _summarizeAndShowPopup(haber),
+                    ),
+                  ),
+                );
               },
             ),
           );
@@ -412,249 +450,5 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     );
   }
 
-  Widget _buildNewsCard(HaberModel haber) {
-    bool hasImage = haber.imageUrl != null && haber.imageUrl!.isNotEmpty;
-    
-    return Dismissible(
-      key: Key(haber.link),
-      direction: DismissDirection.endToStart, // Sağdan sola kaydırma
-      confirmDismiss: (direction) async {
-        // Swipe onaylandığında browser'ı aç
-        await _openInBrowser(haber.link);
-        return false; // Kartı silme, sadece browser aç
-      },
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20.0),
-        decoration: BoxDecoration(
-          color: Colors.blue,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.open_in_browser,
-              color: Colors.white,
-              size: 30,
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Chrome\'da Aç',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface, // Dinamik tema rengi
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _summarizeAndShowPopup(haber),
-            borderRadius: BorderRadius.circular(16),
-            child: SizedBox(
-              height: 200,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double imageWidth = constraints.maxHeight * 4 / 5; // 4:5 oranı
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch, // Kart yüksekliğinde hizala
-                    children: [
-                // Sol taraf - Metin içeriği
-                Expanded(
-                  flex: 2, // 2/3 oranında genişlik
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start, // İçeriği dikey olarak dağıt
-                      children: [
-                        // Üst kısım
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Kaynak adı etiketi
-                            Text(
-                              haber.sourceName.toUpperCase(),
-                              style: TextStyle(
-                                color: Theme.of(context).brightness == Brightness.dark 
-                                    ? const Color(0xFF637588)
-                                    : const Color(0xFF637588),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            
-                            // Başlık
-                            Text(
-                              haber.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                height: 1.2,
-                                fontSize: 16,
-                              ),
-                            ),
-                            
-                            // Açıklama
-                            if (haber.description.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                haber.description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark 
-                                      ? const Color(0xFF637588)
-                                      : const Color(0xFF637588),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Alt bilgiler
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4A90E2).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.auto_awesome,
-                                    size: 12,
-                                    color: const Color(0xFF4A90E2),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'AI Özet',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: const Color(0xFF4A90E2),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              haber.pubDate?.toString().split(' ')[0] ?? '',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFF9CA3AF),
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 8),
-                        
-                        // Kaynak adı
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.language,
-                              size: 12,
-                              color: Theme.of(context).brightness == Brightness.dark 
-                                  ? const Color(0xFF9CA3AF)
-                                  : const Color(0xFF6B7280),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              haber.websiteName ?? haber.sourceName,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context).brightness == Brightness.dark 
-                                    ? const Color(0xFF9CA3AF)
-                                    : const Color(0xFF6B7280),
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(width: 16), // Metin ve görüntü arası boşluk
-                
-                // Sağ taraf - Kart yüksekliğinde görüntü
-                if (hasImage)
-                  SizedBox(
-                    width: imageWidth,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        haber.imageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, progress) =>
-                            progress == null
-                                ? child
-                                : Container(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[800]
-                                        : Colors.grey[300],
-                                    child: const Center(
-                                      child: SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      ),
-                                    ),
-                                  ),
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[800]
-                              : Colors.grey[300],
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.grey[600]
-                                : Colors.grey[400],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-          ),
-        ),
-      );
-  }
+  // Eski kart fonksiyonu kaldırıldı; NewsListItem kullanılmaktadır.
 }
