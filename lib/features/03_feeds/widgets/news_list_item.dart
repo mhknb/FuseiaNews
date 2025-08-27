@@ -131,6 +131,9 @@ class NewsListItem extends StatelessWidget {
       'yz': 'yz.jpg',
       'finans': 'finans.jpg',
       'gundem': 'gundem.jpg',
+      'genel': 'gundem.jpg',
+      'spor': 'spor.jpg',
+      'kultur_sanat': 'sinema.jpg',
       'oyun': 'oyun.jpg',
       'saglik': 'saglik.jpg',
       'sinema': 'sinema.jpg',
@@ -151,7 +154,7 @@ class NewsListItem extends StatelessWidget {
     if (n.contains('oyun') || n.contains('gaming')) return 'assets/images/oyun.jpg';
     if (n.contains('sinema') || n.contains('film')) return 'assets/images/sinema.jpg';
 
-    return 'assets/images/default.jpg';
+    return 'assets/images/gundem.jpg';
   }
 }
 
@@ -169,21 +172,14 @@ class _EdgeImage extends StatelessWidget {
 
     Widget imageWidget;
     if (networkUrl != null) {
-      imageWidget = Image.network(
-        networkUrl!,
+      imageWidget = FadeInImage.assetNetwork(
+        placeholder: assetPath,
+        image: networkUrl!,
         fit: BoxFit.cover,
-        gaplessPlayback: true,
-        errorBuilder: (context, error, stack) => Image.asset(
+        fadeInDuration: const Duration(milliseconds: 200),
+        imageErrorBuilder: (context, error, stack) => Image.asset(
           assetPath,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stack) => Container(
-            color: bg,
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.image_not_supported,
-              color: isDark ? Colors.grey[600] : Colors.grey[500],
-            ),
-          ),
         ),
       );
     } else {

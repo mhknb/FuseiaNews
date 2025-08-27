@@ -76,6 +76,7 @@ class ApiService {
     // Yedek: tekli kaynaklarla çalışan kategoriler
     'Yapay Zeka': [
       'https://www.technologyreview.com/feed/',
+      'https://solveria.art/rss.xml',
     ],
     'Eğitim': [
       'https://www.edsurge.com/news/rss',
