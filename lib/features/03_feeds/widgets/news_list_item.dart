@@ -9,7 +9,7 @@ class NewsListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasImage = haber.imageUrl != null && haber.imageUrl!.isNotEmpty;
+    final bool hasNetworkImage = haber.imageUrl != null && haber.imageUrl!.isNotEmpty;
     final Color secondaryText = Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF9CA3AF)
         : const Color(0xFF6B7280);
@@ -27,14 +27,12 @@ class NewsListItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Sol: tam yükseklik görsel (kare değil)
-            if (hasImage)
-              _EdgeImage(
-                url: haber.imageUrl!,
-                width: imageWidth,
-                radius: 16,
-              )
-            else
-              SizedBox(width: imageWidth),
+            _EdgeImage(
+              networkUrl: hasNetworkImage ? haber.imageUrl! : null,
+              assetPath: _categoryAssetPath(haber.sourceName),
+              width: imageWidth,
+              radius: 16,
+            ),
 
             // Sağ içerik
             Expanded(
@@ -110,18 +108,98 @@ class NewsListItem extends StatelessWidget {
       return '';
     }
   }
+
+  String _categoryAssetPath(String category) {
+    String n = category.toLowerCase();
+    n = n
+        .replaceAll('ç', 'c')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ı', 'i')
+        .replaceAll('ö', 'o')
+        .replaceAll('ş', 's')
+        .replaceAll('ü', 'u');
+    n = n.replaceAll(RegExp(r"[^a-z0-9]+"), '_');
+    n = n.replaceAll(RegExp(r"_+"), '_').replaceAll(RegExp(r"^_|_$"), '');
+
+    // Explicit mappings
+    const Map<String, String> direct = {
+      'teknoloji_haberleri': 'teknoloji.jpg',
+      'teknoloji': 'teknoloji.jpg',
+      'bilim': 'bilim.jpg',
+      'egitim': 'egitim.jpg',
+      'yapay_zeka': 'yz.jpg',
+      'yz': 'yz.jpg',
+      'finans': 'finans.jpg',
+      'gundem': 'gundem.jpg',
+      'oyun': 'oyun.jpg',
+      'saglik': 'saglik.jpg',
+      'sinema': 'sinema.jpg',
+    };
+
+    if (direct.containsKey(n)) {
+      return 'assets/images/${direct[n]!}';
+    }
+
+    // Contains-based fallbacks
+    if (n.contains('teknoloji')) return 'assets/images/teknoloji.jpg';
+    if (n.contains('yapay') || n.contains('zeka')) return 'assets/images/yz.jpg';
+    if (n.contains('saglik')) return 'assets/images/saglik.jpg';
+    if (n.contains('bilim')) return 'assets/images/bilim.jpg';
+    if (n.contains('egitim')) return 'assets/images/egitim.jpg';
+    if (n.contains('finans') || n.contains('ekonomi')) return 'assets/images/finans.jpg';
+    if (n.contains('gundem') || n.contains('haber')) return 'assets/images/gundem.jpg';
+    if (n.contains('oyun') || n.contains('gaming')) return 'assets/images/oyun.jpg';
+    if (n.contains('sinema') || n.contains('film')) return 'assets/images/sinema.jpg';
+
+    return 'assets/images/default.jpg';
+  }
 }
 
 class _EdgeImage extends StatelessWidget {
-  final String url;
+  final String? networkUrl;
+  final String assetPath;
   final double width;
   final double radius;
-  const _EdgeImage({required this.url, required this.width, required this.radius});
+  const _EdgeImage({required this.networkUrl, required this.assetPath, required this.width, required this.radius});
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bg = isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6);
+
+    Widget imageWidget;
+    if (networkUrl != null) {
+      imageWidget = Image.network(
+        networkUrl!,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stack) => Image.asset(
+          assetPath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stack) => Container(
+            color: bg,
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.image_not_supported,
+              color: isDark ? Colors.grey[600] : Colors.grey[500],
+            ),
+          ),
+        ),
+      );
+    } else {
+      imageWidget = Image.asset(
+        assetPath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) => Container(
+          color: bg,
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.image,
+            color: isDark ? Colors.grey[600] : Colors.grey[500],
+          ),
+        ),
+      );
+    }
 
     return ClipRRect(
       borderRadius: BorderRadius.only(
@@ -132,19 +210,7 @@ class _EdgeImage extends StatelessWidget {
         width: width,
         child: DecoratedBox(
           decoration: BoxDecoration(color: bg),
-          child: Image.network(
-            url,
-            fit: BoxFit.cover,
-            gaplessPlayback: true,
-            errorBuilder: (context, error, stack) => Container(
-              color: bg,
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.image_not_supported,
-                color: isDark ? Colors.grey[600] : Colors.grey[500],
-              ),
-            ),
-          ),
+          child: imageWidget,
         ),
       ),
     );
