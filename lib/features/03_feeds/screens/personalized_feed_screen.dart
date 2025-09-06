@@ -57,14 +57,19 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
   void _onCategorySelectionChanged(List<String> selectedCategories) {
     setState(() {
       _selectedCategories = selectedCategories;
-      _isFiltered = selectedCategories.isNotEmpty;
+      
+      // Eğer tüm kategoriler seçiliyse veya hiçbiri seçili değilse filtreleme yapma
+      _isFiltered = selectedCategories.isNotEmpty && 
+                   selectedCategories.length < _userInterests.length;
       
       if (_isFiltered) {
         _filteredNews = _allPersonalizedNews.where((news) {
           return selectedCategories.contains(news.category);
         }).toList();
+        print('🔍 Kişiselleştirilmiş filtrelenmiş haber sayısı: ${_filteredNews.length}');
       } else {
         _filteredNews = _allPersonalizedNews;
+        print('📰 Tüm kişiselleştirilmiş haberler gösteriliyor: ${_allPersonalizedNews.length}');
       }
     });
   }
@@ -425,7 +430,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
                   categories: _userInterests,
                   selectedCategories: _selectedCategories,
                   onSelectionChanged: _onCategorySelectionChanged,
-                  showAllOption: true,
+                  showAllOption: false,
                 ),
               // Haber listesi
               Expanded(
@@ -433,9 +438,9 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
                   onRefresh: () async => _fetchAndTranslateNews(forceRefresh: true),
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    itemCount: _isFiltered ? _filteredNews.length : haberler.length,
+                    itemCount: _isFiltered ? _filteredNews.length : _allPersonalizedNews.length,
                     itemBuilder: (context, index) {
-                      final haber = _isFiltered ? _filteredNews[index] : haberler[index];
+                      final haber = _isFiltered ? _filteredNews[index] : _allPersonalizedNews[index];
                       return Dismissible(
                         key: Key(haber.link),
                         direction: DismissDirection.endToStart,

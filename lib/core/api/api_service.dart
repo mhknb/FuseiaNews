@@ -160,18 +160,30 @@ class ApiService {
     List<Future<List<HaberModel>>> futures = [];
 
     // TÜM kategorilerden RSS kaynaklarını al (global akış)
-    for (final categoryUrls in _interestToRssListMap.values) {
-      for (final url in categoryUrls) {
-        final category = _getCategoryForUrl(url);
-        futures.add(_fetchNewsFromUrl(url, category));
+    int totalUrls = 0;
+    for (final entry in _interestToRssListMap.entries) {
+      final category = entry.key;
+      final urls = entry.value;
+      print('📂 $category kategorisinden ${urls.length} RSS kaynağı');
+      totalUrls += urls.length;
+      
+      for (final url in urls) {
+        final detectedCategory = _getCategoryForUrl(url);
+        futures.add(_fetchNewsFromUrl(url, detectedCategory));
       }
     }
+    print('🔗 Toplam $totalUrls RSS kaynağı işlenecek');
 
     // YouTube kanallarından da haberleri çek
     futures.add(_youtubeService.fetchAllTrackedChannelVideos());
 
-    // Tüm haberleri paralel olarak çek
-    final results = await Future.wait(futures);
+    // Tüm haberleri paralel olarak çek (hata toleranslı)
+    final results = await Future.wait(futures.map((future) => 
+      future.catchError((error) {
+        print('⚠️ RSS kaynağı hatası: $error');
+        return <HaberModel>[];
+      })
+    ));
     List<HaberModel> allNews = results.expand((list) => list).toList();
 
     // Tarihe göre sırala (en yeni önce)
@@ -270,8 +282,13 @@ class ApiService {
       return [];
     }
 
-    // Tüm haberleri paralel olarak çek
-    final results = await Future.wait(futures);
+    // Tüm haberleri paralel olarak çek (hata toleranslı)
+    final results = await Future.wait(futures.map((future) => 
+      future.catchError((error) {
+        print('⚠️ Kişiselleştirilmiş RSS kaynağı hatası: $error');
+        return <HaberModel>[];
+      })
+    ));
     List<HaberModel> allPersonalizedNews = results.expand((list) => list).toList();
     
     // Tarihe göre sırala (en yeni önce)

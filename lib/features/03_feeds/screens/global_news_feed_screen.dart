@@ -69,14 +69,19 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
   void _onCategorySelectionChanged(List<String> selectedCategories) {
     setState(() {
       _selectedCategories = selectedCategories;
-      _isFiltered = selectedCategories.isNotEmpty;
+      
+      // Eğer tüm kategoriler seçiliyse veya hiçbiri seçili değilse filtreleme yapma
+      _isFiltered = selectedCategories.isNotEmpty && 
+                   selectedCategories.length < _availableCategories.length;
       
       if (_isFiltered) {
         _filteredNews = _allNews.where((news) {
           return selectedCategories.contains(news.category);
         }).toList();
+        print('🔍 Filtrelenmiş haber sayısı: ${_filteredNews.length}');
       } else {
         _filteredNews = _allNews;
+        print('📰 Tüm haberler gösteriliyor: ${_allNews.length}');
       }
     });
   }
@@ -486,23 +491,16 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
                 categories: _availableCategories,
                 selectedCategories: _selectedCategories,
                 onSelectionChanged: _onCategorySelectionChanged,
-                showAllOption: true,
+                showAllOption: false,
               ),
               // Haber listesi
               Expanded(
-                child: _isFiltered 
-                    ? AnimatedNewsList(
-                        haberler: _filteredNews,
-                        onItemTap: _summarizeAndShowPopup,
-                        onRefresh: _refreshNews,
-                        isBackgroundRefreshing: _isBackgroundRefreshing,
-                      )
-                    : AnimatedNewsList(
-                        haberler: snapshot.data!,
-                        onItemTap: _summarizeAndShowPopup,
-                        onRefresh: _refreshNews,
-                        isBackgroundRefreshing: _isBackgroundRefreshing,
-                      ),
+                child: AnimatedNewsList(
+                  haberler: _isFiltered ? _filteredNews : _allNews,
+                  onItemTap: _summarizeAndShowPopup,
+                  onRefresh: _refreshNews,
+                  isBackgroundRefreshing: _isBackgroundRefreshing,
+                ),
               ),
             ],
           );

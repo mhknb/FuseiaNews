@@ -92,26 +92,40 @@ class _NewsListItemState extends State<NewsListItem> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Meta row: source • 2 h ago
+                      // Meta row: source • 2 h ago • Kategori
                       Row(
                         children: [
-                          Flexible(
-                            child: Text(
-                              haber.websiteName ?? haber.sourceName,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.w500, // Medium
-                                fontSize: 12,
-                                color: metaColor,
-                                letterSpacing: 0.2,
-                              ),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    haber.websiteName ?? haber.sourceName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.w500, // Medium
+                                      fontSize: 12,
+                                      color: metaColor,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(width: 3, height: 3, decoration: BoxDecoration(color: metaColor, shape: BoxShape.circle)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _relativeTime(haber.pubDate),
+                                  style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                    color: metaColor,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Container(width: 3, height: 3, decoration: BoxDecoration(color: metaColor, shape: BoxShape.circle)),
-                          const SizedBox(width: 6),
                           Text(
-                            _relativeTime(haber.pubDate),
+                            haber.category,
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.w500,
                               fontSize: 12,
