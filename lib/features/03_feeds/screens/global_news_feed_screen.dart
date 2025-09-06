@@ -13,6 +13,9 @@ import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_search_service.dart';
 import '../../../core/models/news_model.dart';
 import '../widgets/news_list_item.dart';
+import '../widgets/animated_news_list.dart';
+import '../widgets/shimmer_loading.dart';
+import '../widgets/category_filter_bar.dart';
 
 class GlobalNewsScreen extends StatefulWidget {
   const GlobalNewsScreen({super.key});
@@ -27,12 +30,55 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
   final ImageSearchService _imageSearchService = ImageSearchService();
   late Future<List<HaberModel>> _haberlerFuture;
   bool _isBackgroundRefreshing = false;
+  
+  // Filtreleme için state
+  List<String> _selectedCategories = [];
+  List<HaberModel> _allNews = [];
+  List<HaberModel> _filteredNews = [];
+  bool _isFiltered = false;
+  
+  // Kategori listesi
+  final List<String> _availableCategories = [
+    'Bilim',
+    'Teknoloji', 
+    'Gündem',
+    'Spor',
+    'Eğlence',
+    'Yaşam',
+    'Finans',
+    'Eğitim',
+    'Sağlık',
+    'Sinema',
+    'Oyun',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _haberlerFuture = _apiService.fetchGlobalNews();
+    _haberlerFuture = _loadNews();
     _startBackgroundRefresh();
+  }
+
+  Future<List<HaberModel>> _loadNews() async {
+    final news = await _apiService.fetchGlobalNews();
+    _allNews = news;
+    _filteredNews = news;
+    return news;
+  }
+
+  void _onCategorySelectionChanged(List<String> selectedCategories) {
+    setState(() {
+      _selectedCategories = selectedCategories;
+      _isFiltered = selectedCategories.isNotEmpty;
+      
+      if (_isFiltered) {
+        _filteredNews = _allNews.where((news) {
+          return selectedCategories.contains(news.category);
+        }).toList();
+      } else {
+        _filteredNews = _allNews;
+      }
+    });
   }
 
   @override
@@ -191,38 +237,52 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         title: Text(
           'Yapay Zeka Özeti',
-          style: GoogleFonts.playfairDisplay(
-            fontWeight: FontWeight.w600,
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w700,
             fontSize: 20,
           ),
         ),
         content: SingleChildScrollView(
           child: Text(
             summary ?? 'Özet alınamadı.',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
+            style: GoogleFonts.outfit(
+              fontSize: 15,
               height: 1.5,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
             ),
-          ),
+        ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Kapat',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w500,
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
           FilledButton.icon(
-            icon: const Icon(Icons.dashboard_customize_outlined),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            icon: const Icon(Icons.dashboard_customize_outlined, size: 20),
             label: Text(
               'Post Oluştur',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w500,
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                color: Colors.white,
               ),
             ),
             onPressed: () {
@@ -293,33 +353,48 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
           "Paylaşıma Hazır!",
-          style: GoogleFonts.playfairDisplay(
+          style: GoogleFonts.outfit(
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: 24,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (finalImageBytes != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0), 
-                  child: Image.memory(finalImageBytes)
-                )
-              else
-                const Icon(Icons.error_outline, color: Colors.red, size: 50),
-              const SizedBox(height: 16),
-              Text(
-                "Paylaşılacak Metin:\n${postTextForSharing ?? "Metin üretilemedi."}",
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (finalImageBytes != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8.0), 
+                    child: Image.memory(finalImageBytes)
+                  )
+                else
+                  Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 50),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    "Paylaşılacak Metin:\n${postTextForSharing ?? "Metin üretilemedi."}",
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -327,17 +402,21 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Kapat',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 16,
               ),
             ),
           ),
           FilledButton.icon(
-            icon: const Icon(Icons.share),
+            icon: Icon(Icons.share, color: Colors.white),
             label: Text(
               'Paylaş',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w500,
+                color: Colors.white,
+                fontSize: 16,
               ),
             ),
             onPressed: () {
@@ -357,95 +436,9 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       itemCount: 5, // Show 5 loading cards
       itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image placeholder
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(Icons.image, size: 48, color: Colors.grey),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Source name placeholder
-                    Container(
-                      width: 80,
-                      height: 12,
-                      color: Colors.grey[300],
-                      margin: const EdgeInsets.only(bottom: 8),
-                    ),
-                    // Title placeholder
-                    Container(
-                      width: double.infinity,
-                      height: 16,
-                      color: Colors.grey[300],
-                      margin: const EdgeInsets.only(bottom: 8),
-                    ),
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.7,
-                      height: 16,
-                      color: Colors.grey[300],
-                      margin: const EdgeInsets.only(bottom: 12),
-                    ),
-                    // Description placeholder
-                    Container(
-                      width: double.infinity,
-                      height: 14,
-                      color: Colors.grey[300],
-                      margin: const EdgeInsets.only(bottom: 4),
-                    ),
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.8,
-                      height: 14,
-                      color: Colors.grey[300],
-                      margin: const EdgeInsets.only(bottom: 12),
-                    ),
-                    // Bottom row placeholder
-                    Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 12,
-                          color: Colors.grey[300],
-                        ),
-                        const Spacer(),
-                        Container(
-                          width: 40,
-                          height: 12,
-                          color: Colors.grey[300],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        return ShimmerLoading(
+          isLoading: true,
+          child: const ShimmerNewsCard(),
         );
       },
     );
@@ -476,7 +469,7 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _haberlerFuture = _apiService.fetchGlobalNews();
+                        _haberlerFuture = _loadNews();
                       });
                     },
                     child: const Text('Tekrar Dene'),
@@ -486,91 +479,31 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
             )
           );
         } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          final haberler = snapshot.data!;
-          return Stack(
+          return Column(
             children: [
-              RefreshIndicator(
-                onRefresh: _refreshNews,
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              itemCount: haberler.length,
-              itemBuilder: (context, index) {
-                final haber = haberler[index];
-                return Dismissible(
-                  key: Key(haber.link),
-                  direction: DismissDirection.endToStart,
-                  confirmDismiss: (direction) async {
-                    await _openInBrowser(haber.link);
-                    return false;
-                  },
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20.0),
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.open_in_browser, color: Colors.white, size: 28),
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.black.withOpacity(0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: NewsListItem(
-                      haber: haber,
-                      onTap: () => _summarizeAndShowPopup(haber),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-              // Background refresh indicator
-              if (_isBackgroundRefreshing)
-                Positioned(
-                  top: 20,
-                  right: 20,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Güncelleniyor...',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              // Filtreleme barı
+              CategoryFilterBar(
+                categories: _availableCategories,
+                selectedCategories: _selectedCategories,
+                onSelectionChanged: _onCategorySelectionChanged,
+                showAllOption: true,
+              ),
+              // Haber listesi
+              Expanded(
+                child: _isFiltered 
+                    ? AnimatedNewsList(
+                        haberler: _filteredNews,
+                        onItemTap: _summarizeAndShowPopup,
+                        onRefresh: _refreshNews,
+                        isBackgroundRefreshing: _isBackgroundRefreshing,
+                      )
+                    : AnimatedNewsList(
+                        haberler: snapshot.data!,
+                        onItemTap: _summarizeAndShowPopup,
+                        onRefresh: _refreshNews,
+                        isBackgroundRefreshing: _isBackgroundRefreshing,
+                      ),
+              ),
             ],
           );
         } else {

@@ -67,6 +67,7 @@ class YoutubeService {
           thumbnailUrl: video.thumbnails.highResUrl,
           sourceName: channel.title,
           sourceIconUrl: channel.logoUrl,
+          category: 'Eğlence', // YouTube videoları genellikle eğlence kategorisinde
         ));
 
         await Future.delayed(const Duration(seconds: 1));

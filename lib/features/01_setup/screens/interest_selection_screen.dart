@@ -16,8 +16,9 @@ class _InterestSelectionScreenState extends State<InterestSelectionScreen> {
 
 
   final List<String> _allInterests = [
-    'Teknoloji', 'Bilim', 'Yapay Zeka', 'Spor', 'Sağlık',
-    'Finans', 'Oyun', 'Sinema', 'Gündem', 'Eğitim',
+    'Bilim', 'Teknoloji', 'Gündem', 'Spor', 
+    'Eğlence', 'Yaşam', 'Finans', 'Yapay Zeka', 
+    'Eğitim', 'Oyun', 'Sağlık',
   ];
 
 

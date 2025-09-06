@@ -16,62 +16,116 @@ class ApiService {
 
   // İlgi alanı -> RSS kaynak listesi (Global akış bu listelerden beslenir)
   final Map<String, List<String>> _interestToRssListMap = {
-    'Teknoloji': [
-      'https://www.donanimhaber.com/rss.xml',
-      'https://webrazzi.com/feed/',
-      'https://www.teknoblog.com/feed/',
-      'https://shiftdelete.net/feed',
-      'https://www.webtekno.com/rss.xml',
-      'https://www.chip.com.tr/rss.xml',
-    ],
     'Bilim': [
-      'https://bilimvegelecek.com.tr/rss.xml',
-      'https://bilimteknik.tubitak.gov.tr/rss.xml',
-      'https://www.bilimgunlugu.com/rss.xml',
-      'https://www.populerbildim.com/rss.xml',
+      'https://arkeofili.com/feed/',
+      'https://bilimvegelecek.com.tr/index.php/feed/',
+      'https://www.bilimoloji.com/feed/',
+      'https://www.bilimup.com/rss.xml',
+      'https://www.tarihlibilim.com/feed/',
+      'https://www.fizikist.com/feed',
+      'https://www.gercekbilim.com/feed/',
+      'https://gelecekbilimde.net/feed/',
+      'https://www.herkesebilimteknoloji.com/feed',
+      'https://www.matematiksel.org/feed',
+      'https://moletik.com/feed/',
+      'https://popsci.com.tr/feed/',
+      'https://sarkac.org/feed/',
     ],
-    'Spor': [
-      'https://www.aspor.com.tr/rss.xml',
-      'https://www.ntvspor.net/rss',
-      'https://www.fotomac.com.tr/rss.xml',
-      'https://www.fanatik.com.tr/rss.xml',
-      'https://www.trtspor.com.tr/rss.xml',
-      'https://www.sporx.com/rss.xml',
+    'Teknoloji': [
+      'https://www.dijitalx.com/feed/',
+      'https://www.chip.com.tr/rss',
+      'https://www.donanimhaber.com/rss/tum/',
+      'https://www.donanimgunlugu.com/feed/',
+      'https://www.log.com.tr/feed/',
+      'https://www.megabayt.com/rss/news',
+      'https://www.pchocasi.com.tr/feed/',
+      'https://www.technopat.net/feed/',
+      'http://www.teknoblog.com/feed/',
+      'https://www.teknolojioku.com/export/rss',
+      'https://www.teknoburada.net/feed/',
+      'http://feeds.feedburner.com/tamindir/stream',
+      'https://webrazzi.com/feed/',
+      'https://t24.com.tr/rss/bilim-teknoloji-haberleri',
+      'https://www.sabah.com.tr/rss/teknoloji.xml',
+      'https://www.haberturk.com/rss/kategori/teknoloji.xml',
+      'https://www.ntv.com.tr/teknoloji.rss',
+      'http://www.star.com.tr/rss/teknoloji.xml',
     ],
     'Gündem': [
+      'https://www.ahaber.com.tr/rss/gundem.xml',
       'https://www.aa.com.tr/tr/rss/default?cat=guncel',
-      'https://www.ntv.com.tr/gundem.rss',
+      'https://feeds.bbci.co.uk/turkce/rss.xml',
       'https://www.cnnturk.com/feed/rss/all/news',
-      'https://www.sozcu.com.tr/rss.xml',
       'http://www.cumhuriyet.com.tr/rss/son_dakika.xml',
-      'https://i12.haber7.net/rss/sondakika.xml',
-      'https://www.milliyet.com.tr/rss/rssNew/gundemRss.xml',
+      'https://www.haberturk.com/rss',
+      'http://www.hurriyet.com.tr/rss/anasayfa',
+      'https://www.ntv.com.tr/gundem.rss',
       'https://www.sabah.com.tr/rss/gundem.xml',
-      'https://www.haberturk.com/rss/kategori/gundem.xml',
+      'https://www.sozcu.com.tr/feeds-rss-category-sozcu',
+      'https://www.star.com.tr/rss/rss.asp',
       'https://t24.com.tr/rss',
-      'https://www.gazeteduvar.com.tr/rss.xml',
-      'https://www.birgun.net/rss',
+      'https://www.trthaber.com/sondakika.rss',
+      'https://www.yeniakit.com.tr/rss/haber/gundem',
+      'https://www.yenisafak.com/rss?xml=gundem',
+      'https://t24.com.tr/rss/dunya-haberleri',
+      'http://www.cumhuriyet.com.tr/rss/17.xml',
+      'https://www.sabah.com.tr/rss/dunya.xml',
+      'http://www.star.com.tr/rss/dunya.xml',
+    ],
+    'Spor': [
+      'https://www.aspor.com.tr/rss',
+      'https://www.fotomac.com.tr/rss/anasayfa.xml',
+      'https://www.ntvspor.net/rss/',
+      'https://www.sozcu.com.tr/feeds-rss-category-spor',
+      'https://www.spormaraton.com/rss/',
+      'https://t24.com.tr/rss/spor-haberleri',
+      'http://www.cumhuriyet.com.tr/rss/32.xml',
+      'https://www.haberturk.com/rss/spor.xml',
+      'https://www.sabah.com.tr/rss/spor.xml',
+      'http://www.star.com.tr/rss/spor.xml',
+      'https://www.fotomac.com.tr/rss/futbol/super-lig.xml',
+      'https://www.fotomac.com.tr/rss/futbol/besiktas.xml',
+      'https://www.fotomac.com.tr/rss/futbol/fenerbahce.xml',
+      'https://www.fotomac.com.tr/rss/futbol/galatasaray.xml',
+      'https://www.fotomac.com.tr/rss/basketbol.xml',
+    ],
+    'Eğlence': [
+      'https://www.atarita.com/feed/',
+      'https://bigumigu.com/feed/',
+      'https://www.bilimkurgukulubu.com/feed/',
+      'https://frpnet.net/feed',
+      'https://geekyapar.com/feed/',
+      'https://kayiprihtim.com/feed/',
+      'https://listelist.com/feed/',
+      'http://www.thegeyik.com/feed/',
+      'https://www.turkmmo.com/feed',
+      'https://www.turunculevye.com/feed/',
+      'https://www.campaigntr.com/feed/',
+      'http://www.cumhuriyet.com.tr/rss/33.xml',
+      'http://www.star.com.tr/rss/magazin.xml',
+      'http://www.star.com.tr/rss/sinema.xml',
+      'http://www.star.com.tr/rss/sanat.xml',
+      'https://t24.com.tr/rss/kultur-sanat-haberleri',
+    ],
+    'Yaşam': [
+      'https://www.istanbullife.com/feed/',
+      'https://www.megabayt.com/yasam/rss',
+      'https://medium.com/feed/@turkce',
+      'https://uplifers.com/feed/',
+      'https://www.sabah.com.tr/rss/yasam.xml',
+      'https://www.ntv.com.tr/yasam.rss',
     ],
     'Finans': [
-      'https://www.haberturk.com/rss/kategori/ekonomi.xml',
-      'https://www.aa.com.tr/tr/rss/default?cat=ekonomi',
-      'https://tr.investing.com/rss/news.rss',
-      'https://www.dunya.com/rss',
-      'https://www.ekonomist.com.tr/rss.xml',
-      'https://www.bloomberght.com/rss',
-    ],
-    'Sinema': [
-      'https://www.beyazperde.com/rss/haberler.xml',
-      'https://www.haberturk.com/rss/kategori/magazin.xml',
-      'https://www.milliyet.com.tr/rss/rssNew/magazinRss.xml',
-      'https://www.hurriyet.com.tr/rss/magazin',
-    ],
-    'Kültür & Sanat': [
-      'https://www.arkitera.com/rss.xml',
-      'https://sanathaber.com/rss.xml',
-      'https://kulturservisi.com/rss.xml',
-      'https://www.edebiyathaber.net/rss.xml',
-      'https://muzehaberleri.com/rss.xml',
+      'http://bigpara.hurriyet.com.tr/rss/',
+      'https://www.dunya.com/rss?dunya',
+      'https://tr.investing.com/rss/',
+      'https://www.sozcu.com.tr/feeds-rss-category-ekonomi',
+      'https://t24.com.tr/rss/ekonomi-haberleri',
+      'http://www.cumhuriyet.com.tr/rss/24.xml',
+      'https://www.haberturk.com/rss/ekonomi.xml',
+      'https://www.sabah.com.tr/rss/ekonomi.xml',
+      'http://www.star.com.tr/rss/ekonomi.xml',
+      'https://www.ntv.com.tr/ekonomi.rss',
     ],
     // Yedek: tekli kaynaklarla çalışan kategoriler
     'Yapay Zeka': [
@@ -95,7 +149,7 @@ class ApiService {
     
     // Check cache first unless force refresh is requested
     if (!forceRefresh) {
-      final cachedNews = await _cacheService.getCachedNews();
+      final cachedNews = await _cacheService.getCachedGlobalNews();
       if (cachedNews != null && cachedNews.isNotEmpty) {
         print('✅ Cache\'den ${cachedNews.length} haber döndürüldü');
         return cachedNews;
@@ -103,54 +157,30 @@ class ApiService {
       print('❌ Cache\'de haber bulunamadı');
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final userInterests = prefs.getStringList('user_interests') ?? [];
+    List<Future<List<HaberModel>>> futures = [];
 
-    List<String> urlsToFetch = [];
-
-    if (userInterests.isEmpty) {
-      // Varsayılan: Gündem kategorisindeki kaynaklardan çek (sınırlı sayıda)
-      final defaultUrls = _interestToRssListMap['Gündem'] ?? [];
-      // İlk 5 kaynağı al - performansı artırmak için
-      urlsToFetch = defaultUrls.take(5).toList();
-    } else {
-      // Kullanıcının ilgi alanlarından kaynakları topla ve sınırla
-      for (String interest in userInterests) {
-        final urls = _interestToRssListMap[interest];
-        if (urls != null && urls.isNotEmpty) {
-          // Her kategoriden maksimum 3 kaynak al
-          urlsToFetch.addAll(urls.take(3));
-        }
-      }
-      // Toplam maksimum 12 kaynakla sınırla
-      urlsToFetch = urlsToFetch.take(12).toList();
-    }
-
-    if (urlsToFetch.isEmpty) {
-      return [];
-    }
-
-    // Paralel istek sayısı sınırla (maksimum 6 paralel istek)
-    final batchSize = 6;
-    List<HaberModel> allNews = [];
-
-    for (int i = 0; i < urlsToFetch.length; i += batchSize) {
-      final batch = urlsToFetch.skip(i).take(batchSize);
-      final futures = batch.map((url) {
+    // TÜM kategorilerden RSS kaynaklarını al (global akış)
+    for (final categoryUrls in _interestToRssListMap.values) {
+      for (final url in categoryUrls) {
         final category = _getCategoryForUrl(url);
-        return _fetchNewsFromUrl(url, category);
-      });
-
-      final results = await Future.wait(futures);
-      allNews.addAll(results.expand((list) => list).toList());
+        futures.add(_fetchNewsFromUrl(url, category));
+      }
     }
 
+    // YouTube kanallarından da haberleri çek
+    futures.add(_youtubeService.fetchAllTrackedChannelVideos());
+
+    // Tüm haberleri paralel olarak çek
+    final results = await Future.wait(futures);
+    List<HaberModel> allNews = results.expand((list) => list).toList();
+
+    // Tarihe göre sırala (en yeni önce)
     allNews.sort((a, b) => b.pubDate?.compareTo(a.pubDate ?? DateTime(0)) ?? 0);
 
     print('🎯 Toplam ${allNews.length} haber toplandı');
 
     // Cache the results for future use
-    await _cacheService.cacheNews(allNews);
+    await _cacheService.cacheGlobalNews(allNews);
     print('💾 Haberler cache\'e kaydedildi');
 
     return allNews;
@@ -166,13 +196,46 @@ class ApiService {
     return 'Genel';
   }
 
-  /// Kullanıcının seçtiği ve eklediği tüm kişisel kaynaklardan (RSS ve YouTube) haberleri çeker.
-  Future<List<HaberModel>> fetchPersonalizedNews() async {
+  /// Kullanıcının seçtiği kategorilerden ve eklediği özel kaynaklardan haberleri çeker.
+  Future<List<HaberModel>> fetchPersonalizedNews({bool forceRefresh = false}) async {
+    print('🔍 fetchPersonalizedNews başladı - forceRefresh: $forceRefresh');
+    
+    // Cache'den haberleri kontrol et (forceRefresh false ise)
+    if (!forceRefresh) {
+      final cachedNews = await _cacheService.getCachedPersonalizedNews();
+      if (cachedNews != null && cachedNews.isNotEmpty) {
+        print('✅ Cache\'den ${cachedNews.length} kişiselleştirilmiş haber döndürüldü');
+        return cachedNews;
+      } else {
+        print('❌ Cache\'de kişiselleştirilmiş haber bulunamadı');
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
+    final userInterests = prefs.getStringList('user_interests') ?? [];
+    
+    List<Future<List<HaberModel>>> futures = [];
 
+    // 1. Kullanıcının seçtiği kategorilerden haberleri çek
+    if (userInterests.isNotEmpty) {
+      List<String> categoryUrls = [];
+      for (String interest in userInterests) {
+        final urls = _interestToRssListMap[interest];
+        if (urls != null && urls.isNotEmpty) {
+          // Her kategoriden maksimum 5 kaynak al
+          categoryUrls.addAll(urls.take(5));
+        }
+      }
+      
+      // Kategori haberlerini paralel olarak çek
+      for (String url in categoryUrls) {
+        final category = _getCategoryForUrl(url);
+        futures.add(_fetchNewsFromUrl(url, category));
+      }
+    }
 
-
-   final String? customSourcesJson = prefs.getString('user_custom_sources');
+    // 2. Kullanıcının manuel olarak eklediği özel kaynakları çek
+    final String? customSourcesJson = prefs.getString('user_custom_sources');
     List<dynamic> customRssList = (customSourcesJson != null && customSourcesJson.isNotEmpty)
         ? jsonDecode(customSourcesJson)
         : [];
@@ -187,17 +250,7 @@ class ApiService {
       return true;
     }).toList();
 
-
-    final customYoutubeUrls = prefs.getStringList('youtube_channels') ?? [];
-
-    if (customRssList.isEmpty && customYoutubeUrls.isEmpty) {
-      return []; // Takip edilen hiçbir kaynak yoksa boş liste döndür.
-    }
-
-
-    List<Future<List<HaberModel>>> futures = [];
-
-   for (var source in customRssList) {
+    for (var source in customRssList) {
       if (source is Map<String, dynamic> && source.containsKey('name') && source.containsKey('url')) {
         final String name = source['name'];
         final String url = source['url'];
@@ -205,16 +258,33 @@ class ApiService {
       }
     }
 
-   if (customYoutubeUrls.isNotEmpty) {
+    // 3. YouTube kanallarından haberleri çek
+    final customYoutubeUrls = prefs.getStringList('youtube_channels') ?? [];
+    if (customYoutubeUrls.isNotEmpty) {
       futures.add(_youtubeService.fetchAllTrackedChannelVideos());
     }
 
-   final results = await Future.wait(futures);
+    // Eğer hiçbir kaynak yoksa boş liste döndür
+    if (futures.isEmpty) {
+      print('❌ Kişiselleştirilmiş akış için kaynak bulunamadı');
+      return [];
+    }
+
+    // Tüm haberleri paralel olarak çek
+    final results = await Future.wait(futures);
     List<HaberModel> allPersonalizedNews = results.expand((list) => list).toList();
+    
+    // Tarihe göre sırala (en yeni önce)
     allPersonalizedNews.sort((a, b) {
       if (a.pubDate == null || b.pubDate == null) return 0;
       return b.pubDate!.compareTo(a.pubDate!);
     });
+
+    print('🎯 Toplam ${allPersonalizedNews.length} kişiselleştirilmiş haber toplandı');
+
+    // Cache the results for future use
+    await _cacheService.cachePersonalizedNews(allPersonalizedNews);
+    print('💾 Kişiselleştirilmiş haberler cache\'e kaydedildi');
 
     return allPersonalizedNews;
   }
@@ -257,6 +327,7 @@ class ApiService {
             websiteName: _getWebsiteName(url),
             sourceIconUrl: _getIconUrl(item.links?.first.href ?? url, feed.logo),
             imageUrl: imageUrl,
+            category: _getCategoryForUrl(url),
           );
         }).toList() ?? [];
       }
@@ -283,6 +354,7 @@ class ApiService {
             websiteName: _getWebsiteName(url),
             sourceIconUrl: _getIconUrl(item.link ?? url, feed.image?.url),
             imageUrl: imageUrl,
+            category: _getCategoryForUrl(url),
           );
         }).toList() ?? [];
       } else {
@@ -317,40 +389,94 @@ class ApiService {
       
       // Domain adından site ismini çıkar
       final Map<String, String> domainToName = {
-        'donanimhaber.com': 'Donanım Haber',
-        'webrazzi.com': 'Webrazzi',
-        'teknoblog.com': 'Teknoblog',
-        'shiftdelete.net': 'ShiftDelete',
-        'webtekno.com': 'Webtekno',
-        'chip.com.tr': 'Chip Online',
+        // Bilim kategorisi
+        'arkeofili.com': 'Arkeofili',
         'bilimvegelecek.com.tr': 'Bilim ve Gelecek',
+        'bilimoloji.com': 'Bilimoloji',
+        'bilimup.com': 'Bilimup',
+        'tarihlibilim.com': 'Tarihli Bilim',
+        'fizikist.com': 'Fizikist',
+        'gercekbilim.com': 'Gerçek Bilim',
+        'gelecekbilimde.net': 'Gelecek Bilimde',
+        'herkesebilimteknoloji.com': 'Herkese Bilim Teknoloji',
+        'matematiksel.org': 'Matematiksel',
+        'moletik.com': 'Moletik',
+        'popsci.com.tr': 'Popular Science',
+        'sarkac.org': 'Sarkaç',
+        
+        // Teknoloji kategorisi
+        'dijitalx.com': 'DijitalX',
+        'chip.com.tr': 'CHIP Online',
+        'donanimhaber.com': 'Donanım Haber',
+        'donanimgunlugu.com': 'Donanım Günlüğü',
+        'log.com.tr': 'LOG',
+        'megabayt.com': 'Megabayt',
+        'pchocasi.com.tr': 'PC Hocası',
+        'technopat.net': 'Technopat',
+        'teknoblog.com': 'Teknoblog',
+        'teknolojioku.com': 'Teknolojioku',
+        'teknoburada.net': 'TeknoBurada',
+        'tamindir.com': 'Tam İndir',
+        'webrazzi.com': 'Webrazzi',
+        't24.com.tr': 'T24',
+        'sabah.com.tr': 'Sabah',
+        'haberturk.com': 'Habertürk',
+        'ntv.com.tr': 'NTV',
+        'star.com.tr': 'Star',
+        
+        // Haberler & Güncel Olaylar
+        'ahaber.com.tr': 'A Haber',
+        'aa.com.tr': 'Anadolu Ajansı',
+        'bbci.co.uk': 'BBC Türkçe',
+        'cnnturk.com': 'CNN Türk',
+        'cumhuriyet.com.tr': 'Cumhuriyet',
+        'hurriyet.com.tr': 'Hürriyet',
+        'sozcu.com.tr': 'Sözcü',
+        'trthaber.com': 'TRT Haber',
+        'yeniakit.com.tr': 'Yeni Akit',
+        'yenisafak.com': 'Yeni Şafak',
+        
+        // Spor kategorisi
+        'aspor.com.tr': 'A Spor',
+        'fotomac.com.tr': 'Fotomaç',
+        'ntvspor.net': 'NTV Spor',
+        'spormaraton.com': 'Spor Maraton',
+        
+        // Eğlence kategorisi
+        'atarita.com': 'Atarita',
+        'bigumigu.com': 'Bigumigu',
+        'bilimkurgukulubu.com': 'Bilimkurgu Kulübü',
+        'frpnet.net': 'FRPNET',
+        'geekyapar.com': 'Geekyapar',
+        'kayiprihtim.com': 'Kayıp Rıhtım',
+        'listelist.com': 'ListeList',
+        'thegeyik.com': 'The Geyik',
+        'turkmmo.com': 'Turkmmo',
+        'turunculevye.com': 'Turuncu Levye',
+        'campaigntr.com': 'Campaign Türkiye',
+        
+        // Yaşam kategorisi
+        'istanbullife.com': 'İstanbul Life',
+        'medium.com': 'Medium Türkçe',
+        'uplifers.com': 'Uplifers',
+        
+        // Ekonomi & Finans
+        'bigpara.hurriyet.com.tr': 'Bigpara',
+        'dunya.com': 'Dünya',
+        'investing.com': 'Investing',
+        
+        // Eski kaynaklar (geriye dönük uyumluluk için)
         'bilimteknik.tubitak.gov.tr': 'Bilim Teknik',
         'bilimgunlugu.com': 'Bilim Günlüğü',
         'populerbildim.com': 'Popüler Bilim',
-        'aspor.com.tr': 'A Spor',
-        'ntvspor.net': 'NTV Spor',
-        'fotomac.com.tr': 'Fotomaç',
         'fanatik.com.tr': 'Fanatik',
         'trtspor.com.tr': 'TRT Spor',
         'sporx.com': 'Sporx',
-        'aa.com.tr': 'Anadolu Ajansı',
-        'ntv.com.tr': 'NTV',
-        'cnnturk.com': 'CNN Türk',
-        'sozcu.com.tr': 'Sözcü',
-        'cumhuriyet.com.tr': 'Cumhuriyet',
-        'haber7.net': 'Haber7',
-        'milliyet.com.tr': 'Milliyet',
-        'sabah.com.tr': 'Sabah',
-        'haberturk.com': 'Habertürk',
-        't24.com.tr': 'T24',
         'gazeteduvar.com.tr': 'Gazete Duvar',
         'birgun.net': 'BirGün',
-        'investing.com': 'Investing',
-        'dunya.com': 'Dünya',
         'ekonomist.com.tr': 'Ekonomist',
         'bloomberght.com': 'Bloomberg HT',
         'beyazperde.com': 'Beyazperde',
-        'hurriyet.com.tr': 'Hürriyet',
         'arkitera.com': 'Arkitera',
         'sanathaber.com': 'Sanat Haber',
         'kulturservisi.com': 'Kültür Servisi',
@@ -359,7 +485,6 @@ class ApiService {
         'technologyreview.com': 'MIT Technology Review',
         'edsurge.com': 'EdSurge',
         'gamespot.com': 'GameSpot',
-        'bbci.co.uk': 'BBC',
       };
       
       return domainToName[host] ?? host.split('.')[0].toUpperCase();

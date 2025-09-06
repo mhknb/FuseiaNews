@@ -89,8 +89,15 @@ class _YoutubeFeedScreenState extends State<YoutubeFeedScreen> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.settings),
-                    label: const Text('Ayarları Aç'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: Theme.of(context).brightness == Brightness.dark ? 0 : 1,
+                    ),
+                    icon: const Icon(Icons.settings, size: 20),
+                    label: const Text('Ayarları Aç', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     onPressed: () {
                         Navigator.push(
                         context,

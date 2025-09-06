@@ -1,31 +1,34 @@
 // lib/core/api/gemini_api_service.dart
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GeminiApiService {
   GenerativeModel? _model;
+  String? _lastApiKeyUsed;
+
+  static const String kDefaultGeminiApiKey = 'AIzaSyCdT7YVlzDCbYYbZs12YvZ7j9SQxHCkRa0';
+  static const String kDefaultGeminiModel = 'models/gemini-2.0-flash-lite';
 
   // Modeli sadece ihtiyaç duyulduğunda bir kere başlatan private fonksiyon
   Future<GenerativeModel?> _initializeModel() async {
-    if (_model != null) return _model;
-
     final prefs = await SharedPreferences.getInstance();
-    String? apiKey = prefs.getString('user_api_key');
+    final bool useOwnApiKey = prefs.getBool('use_own_api_key') ?? false;
+    final String selectedApiKey = useOwnApiKey
+        ? (prefs.getString('user_api_key') ?? '')
+        : kDefaultGeminiApiKey;
 
-    if (apiKey == null || apiKey.isEmpty) {
-      apiKey = dotenv.env['GEMINI_API_KEY'];
-    }
-
-    if (apiKey == null || apiKey.isEmpty) {
+    if (useOwnApiKey && selectedApiKey.isEmpty) {
       return null;
     }
 
+    if (_model != null && _lastApiKeyUsed == selectedApiKey) return _model;
+
     _model = GenerativeModel(
-      model: 'gemini-1.5-flash-latest',
-      apiKey: apiKey,
+      model: kDefaultGeminiModel,
+      apiKey: selectedApiKey,
     );
+    _lastApiKeyUsed = selectedApiKey;
     return _model;
   }
 

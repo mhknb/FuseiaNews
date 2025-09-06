@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
           foregroundColor: lightTextColor, // AppBar yazı ve ikon rengi
           elevation: 0.5,
           centerTitle: true,
-          titleTextStyle: GoogleFonts.playfairDisplay(
+          titleTextStyle: GoogleFonts.outfit(
             textStyle: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -101,27 +101,27 @@ class MyApp extends StatelessWidget {
         ),
 
         textTheme: TextTheme(
-          titleLarge: GoogleFonts.playfairDisplay(
+          titleLarge: GoogleFonts.outfit(
             textStyle: const TextStyle(
               color: lightTextColor,
               fontWeight: FontWeight.w600,
               fontSize: 22,
             ),
           ),
-          titleMedium: GoogleFonts.playfairDisplay(
+          titleMedium: GoogleFonts.outfit(
             textStyle: const TextStyle(
               color: lightTextColor,
               fontWeight: FontWeight.w500,
               fontSize: 18,
             ),
           ),
-          bodyLarge: GoogleFonts.poppins(
+          bodyLarge: GoogleFonts.outfit(
             textStyle: const TextStyle(
               color: lightTextColor,
               fontSize: 16,
             ),
           ),
-          bodyMedium: GoogleFonts.poppins(
+          bodyMedium: GoogleFonts.outfit(
             textStyle: const TextStyle(
               color: lightBodyTextColor,
               fontSize: 14,
@@ -164,7 +164,7 @@ class MyApp extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
-          titleTextStyle: GoogleFonts.playfairDisplay(
+          titleTextStyle: GoogleFonts.outfit(
             textStyle: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -213,27 +213,27 @@ class MyApp extends StatelessWidget {
 
         // Yazı Stili Teması
         textTheme: TextTheme(
-          titleLarge: GoogleFonts.playfairDisplay(
+          titleLarge: GoogleFonts.outfit(
             textStyle: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
               fontSize: 22,
             ),
           ),
-          titleMedium: GoogleFonts.playfairDisplay(
+          titleMedium: GoogleFonts.outfit(
             textStyle: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w500,
               fontSize: 18,
             ),
           ),
-          bodyLarge: GoogleFonts.poppins(
+          bodyLarge: GoogleFonts.outfit(
             textStyle: const TextStyle(
               color: Colors.white,
               fontSize: 16,
             ),
           ),
-          bodyMedium: GoogleFonts.poppins(
+          bodyMedium: GoogleFonts.outfit(
             textStyle: const TextStyle(
               color: Colors.white70,
               fontSize: 14,

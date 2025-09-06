@@ -11,6 +11,7 @@ class HaberModel {
   final String? websiteName;
   final String? sourceIconUrl;
   final String? imageUrl;
+  final String category;
 
   HaberModel({
     required this.title,
@@ -24,6 +25,7 @@ class HaberModel {
     this.websiteName,
     this.sourceIconUrl,
     this.imageUrl,
+    required this.category,
   });
 
   Map<String, dynamic> toJson() => {
@@ -38,6 +40,7 @@ class HaberModel {
     'websiteName': websiteName,
     'sourceIconUrl': sourceIconUrl,
     'imageUrl': imageUrl,
+    'category': category,
   };
 
   factory HaberModel.fromJson(Map<String, dynamic> json) => HaberModel(
@@ -52,5 +55,6 @@ class HaberModel {
     websiteName: json['websiteName'] as String?,
     sourceIconUrl: json['sourceIconUrl'] as String?,
     imageUrl: json['imageUrl'] as String?,
+    category: json['category'] as String? ?? 'Genel',
   );
 }

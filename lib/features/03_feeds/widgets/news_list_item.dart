@@ -1,112 +1,161 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/models/news_model.dart';
 
-class NewsListItem extends StatelessWidget {
+class NewsListItem extends StatefulWidget {
   final HaberModel haber;
   final VoidCallback onTap;
 
   const NewsListItem({super.key, required this.haber, required this.onTap});
 
   @override
+  State<NewsListItem> createState() => _NewsListItemState();
+}
+
+class _NewsListItemState extends State<NewsListItem> {
+  bool _pressed = false;
+
+  String _relativeTime(DateTime? date) {
+    if (date == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} m ago';
+    if (diff.inHours < 24) return '${diff.inHours} h ago';
+    return '${diff.inDays} d ago';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final haber = widget.haber;
     final bool hasNetworkImage = haber.imageUrl != null && haber.imageUrl!.isNotEmpty;
-    final Color secondaryText = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF9CA3AF)
-        : const Color(0xFF6B7280);
 
-    // Kart yüksekliği ve görsel genişliği
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double cardHeight = screenWidth >= 380 ? 148 : 136;
-    final double imageWidth = (screenWidth * 0.32).clamp(110.0, 150.0);
+    final Color metaColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
+    final Color summaryColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.7);
+    final Color headlineColor = Theme.of(context).colorScheme.onSurface;
+    final Color cardBg = Theme.of(context).colorScheme.surface;
+    final Color pressedStroke = Theme.of(context).colorScheme.outline.withOpacity(0.3);
 
-    return InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        height: cardHeight,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Sol: tam yükseklik görsel (kare değil)
-            _EdgeImage(
-              networkUrl: hasNetworkImage ? haber.imageUrl! : null,
-              assetPath: _categoryAssetPath(haber.sourceName),
-              width: imageWidth,
-              radius: 16,
-            ),
+    const double imageWidth = 96;
 
-            // Sağ içerik
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Başlık + açıklama
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          haber.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            height: 1.25,
-                            fontSize: 17,
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _pressed ? 0.98 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _pressed ? pressedStroke : Colors.transparent, width: 1),
+            boxShadow: const [
+              BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1)),
+            ],
+          ),
+          padding: const EdgeInsets.all(16),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left: fixed width image 96dp
+                ConstrainedBox(
+                  constraints: const BoxConstraints.tightFor(width: imageWidth),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: FractionallySizedBox(
+                      heightFactor: 1,
+                      child: hasNetworkImage
+                          ? FadeInImage.assetNetwork(
+                              placeholder: _categoryAssetPath(haber.sourceName),
+                              image: haber.imageUrl!,
+                              fit: BoxFit.cover,
+                              fadeInDuration: const Duration(milliseconds: 180),
+                              imageErrorBuilder: (context, error, stack) => Image.asset(
+                                _categoryAssetPath(haber.sourceName),
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Image.asset(
+                              _categoryAssetPath(haber.sourceName),
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Right: text
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Meta row: source • 2 h ago
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              haber.websiteName ?? haber.sourceName,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w500, // Medium
+                                fontSize: 12,
+                                color: metaColor,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
                           ),
-                        ),
-                        if (haber.description.isNotEmpty) ...[
-                          const SizedBox(height: 6),
+                          const SizedBox(width: 6),
+                          Container(width: 3, height: 3, decoration: BoxDecoration(color: metaColor, shape: BoxShape.circle)),
+                          const SizedBox(width: 6),
                           Text(
-                            haber.description,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: secondaryText,
-                              fontSize: 13.5,
-                              height: 1.35,
+                            _relativeTime(haber.pubDate),
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                              color: metaColor,
                             ),
                           ),
                         ],
-                      ],
-                    ),
-
-                    // Meta satırı
-                    Row(
-                      children: [
-                        Icon(Icons.public, size: 12, color: secondaryText),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            '${haber.websiteName ?? haber.sourceName} · ${_formatDate(haber.pubDate)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: secondaryText,
-                              fontSize: 12,
-                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Headline
+                      Text(
+                        haber.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w600, // SemiBold
+                          height: 1.2,
+                          fontSize: 18,
+                          color: headlineColor,
+                        ),
+                      ),
+                      if (haber.description.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          haber.description,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.outfit(
+                            color: summaryColor,
+                            fontSize: 14,
+                            height: 1.4,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return '';
-    try {
-      return date.toString().split(' ').first;
-    } catch (_) {
-      return '';
-    }
   }
 
   String _categoryAssetPath(String category) {
@@ -121,19 +170,20 @@ class NewsListItem extends StatelessWidget {
     n = n.replaceAll(RegExp(r"[^a-z0-9]+"), '_');
     n = n.replaceAll(RegExp(r"_+"), '_').replaceAll(RegExp(r"^_|_$"), '');
 
-    // Explicit mappings
     const Map<String, String> direct = {
       'teknoloji_haberleri': 'teknoloji.jpg',
       'teknoloji': 'teknoloji.jpg',
-      'bilim': 'bilim.jpg',
-      'egitim': 'egitim.jpg',
+      'bilim': 'bilim.png',
+      'egitim': 'egitim.png',
       'yapay_zeka': 'yz.jpg',
       'yz': 'yz.jpg',
-      'finans': 'finans.jpg',
-      'gundem': 'gundem.jpg',
-      'genel': 'gundem.jpg',
-      'spor': 'spor.jpg',
+      'finans': 'finans.png',
+      'gundem': 'gundem.png',
+      'genel': 'gundem.png',
+      'spor': 'spor.png',
       'kultur_sanat': 'sinema.jpg',
+      'eglence': 'eglence.png',
+      'yasam': 'yasam.png',
       'oyun': 'oyun.jpg',
       'saglik': 'saglik.jpg',
       'sinema': 'sinema.jpg',
@@ -143,74 +193,19 @@ class NewsListItem extends StatelessWidget {
       return 'assets/images/${direct[n]!}';
     }
 
-    // Contains-based fallbacks
     if (n.contains('teknoloji')) return 'assets/images/teknoloji.jpg';
     if (n.contains('yapay') || n.contains('zeka')) return 'assets/images/yz.jpg';
     if (n.contains('saglik')) return 'assets/images/saglik.jpg';
-    if (n.contains('bilim')) return 'assets/images/bilim.jpg';
-    if (n.contains('egitim')) return 'assets/images/egitim.jpg';
-    if (n.contains('finans') || n.contains('ekonomi')) return 'assets/images/finans.jpg';
-    if (n.contains('gundem') || n.contains('haber')) return 'assets/images/gundem.jpg';
+    if (n.contains('bilim')) return 'assets/images/bilim.png';
+    if (n.contains('egitim')) return 'assets/images/egitim.png';
+    if (n.contains('finans') || n.contains('ekonomi')) return 'assets/images/finans.png';
+    if (n.contains('gundem') || n.contains('haber')) return 'assets/images/gundem.png';
+    if (n.contains('eglence')) return 'assets/images/eglence.png';
+    if (n.contains('yasam')) return 'assets/images/yasam.png';
     if (n.contains('oyun') || n.contains('gaming')) return 'assets/images/oyun.jpg';
     if (n.contains('sinema') || n.contains('film')) return 'assets/images/sinema.jpg';
+    if (n.contains('spor')) return 'assets/images/spor.png';
 
-    return 'assets/images/gundem.jpg';
+    return 'assets/images/gundem.png';
   }
 }
-
-class _EdgeImage extends StatelessWidget {
-  final String? networkUrl;
-  final String assetPath;
-  final double width;
-  final double radius;
-  const _EdgeImage({required this.networkUrl, required this.assetPath, required this.width, required this.radius});
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color bg = isDark ? const Color(0xFF1F2937) : const Color(0xFFF3F4F6);
-
-    Widget imageWidget;
-    if (networkUrl != null) {
-      imageWidget = FadeInImage.assetNetwork(
-        placeholder: assetPath,
-        image: networkUrl!,
-        fit: BoxFit.cover,
-        fadeInDuration: const Duration(milliseconds: 200),
-        imageErrorBuilder: (context, error, stack) => Image.asset(
-          assetPath,
-          fit: BoxFit.cover,
-        ),
-      );
-    } else {
-      imageWidget = Image.asset(
-        assetPath,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stack) => Container(
-          color: bg,
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.image,
-            color: isDark ? Colors.grey[600] : Colors.grey[500],
-          ),
-        ),
-      );
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(radius),
-        bottomLeft: Radius.circular(radius),
-      ),
-      child: SizedBox(
-        width: width,
-        child: DecoratedBox(
-          decoration: BoxDecoration(color: bg),
-          child: imageWidget,
-        ),
-      ),
-    );
-  }
-}
-
-

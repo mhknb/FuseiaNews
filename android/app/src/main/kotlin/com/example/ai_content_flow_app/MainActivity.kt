@@ -1,4 +1,4 @@
-package com.example.ai_content_flow_app
+package com.maveria.fuseia
 
 import io.flutter.embedding.android.FlutterActivity
 

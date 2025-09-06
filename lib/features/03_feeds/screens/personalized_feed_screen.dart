@@ -7,12 +7,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart' as ul;
 import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'web_view_screen.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_search_service.dart';
 import '../../../core/models/news_model.dart';
 import '../widgets/news_list_item.dart';
+import '../widgets/category_filter_bar.dart';
 import '../../04_settings/screens/settings_screen.dart';
 
 class PersonalizedFeedScreen extends StatefulWidget {
@@ -28,11 +30,43 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
   final ImageSearchService _imageSearchService = ImageSearchService();
   late Future<List<HaberModel>> _haberlerFuture;
   String _loadingStatus = 'Kişisel akışınız hazırlanıyor...';
+  
+  // Filtreleme için state
+  List<String> _selectedCategories = [];
+  List<HaberModel> _allPersonalizedNews = [];
+  List<HaberModel> _filteredNews = [];
+  bool _isFiltered = false;
+  
+  // Kullanıcının seçtiği kategoriler
+  List<String> _userInterests = [];
 
   @override
   void initState() {
     super.initState();
+    _loadUserInterests();
     _fetchAndTranslateNews();
+  }
+
+  Future<void> _loadUserInterests() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userInterests = prefs.getStringList('user_interests') ?? [];
+    });
+  }
+
+  void _onCategorySelectionChanged(List<String> selectedCategories) {
+    setState(() {
+      _selectedCategories = selectedCategories;
+      _isFiltered = selectedCategories.isNotEmpty;
+      
+      if (_isFiltered) {
+        _filteredNews = _allPersonalizedNews.where((news) {
+          return selectedCategories.contains(news.category);
+        }).toList();
+      } else {
+        _filteredNews = _allPersonalizedNews;
+      }
+    });
   }
 
   /// Haber bağlantısını Chrome Custom Tabs ile açar
@@ -83,16 +117,20 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     }
   }
 
-  void _fetchAndTranslateNews() {
+  void _fetchAndTranslateNews({bool forceRefresh = false}) {
     setState(() {
-      _haberlerFuture = _loadData();
+      _haberlerFuture = _loadData(forceRefresh: forceRefresh);
     });
   }
 
-  Future<List<HaberModel>> _loadData() async {
+  Future<List<HaberModel>> _loadData({bool forceRefresh = false}) async {
     if (mounted) setState(() => _loadingStatus = 'Kişisel kaynaklar taranıyor...');
-    List<HaberModel> newsList = await _apiService.fetchPersonalizedNews();
+    List<HaberModel> newsList = await _apiService.fetchPersonalizedNews(forceRefresh: forceRefresh);
     if (newsList.isEmpty) return [];
+    
+    // Tüm haberleri sakla
+    _allPersonalizedNews = newsList;
+    _filteredNews = newsList;
 
     if (mounted) setState(() => _loadingStatus = 'Haberler çevriliyor...');
 
@@ -180,7 +218,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
       builder: (context) => AlertDialog(
         title: Text(
           'Yapay Zeka Özeti',
-          style: GoogleFonts.playfairDisplay(
+          style: GoogleFonts.outfit(
             fontWeight: FontWeight.w600,
             fontSize: 20,
           ),
@@ -188,7 +226,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
         content: SingleChildScrollView(
           child: Text(
             summary ?? 'Özet alınamadı.',
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.outfit(
               fontSize: 16,
               height: 1.5,
             ),
@@ -199,7 +237,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Kapat',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -208,7 +246,7 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
             icon: const Icon(Icons.dashboard_customize_outlined),
             label: Text(
               'Post Oluştur',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -280,33 +318,48 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
           "Paylaşıma Hazır!",
-          style: GoogleFonts.playfairDisplay(
+          style: GoogleFonts.outfit(
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: 24,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (finalImageBytes != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0), 
-                  child: Image.memory(finalImageBytes)
-                )
-              else
-                const Icon(Icons.error_outline, color: Colors.red, size: 50),
-              const SizedBox(height: 16),
-              Text(
-                "Paylaşılacak Metin:\n${postTextForSharing ?? "Metin üretilemedi."}",
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (finalImageBytes != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8.0), 
+                    child: Image.memory(finalImageBytes)
+                  )
+                else
+                  Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 50),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    "Paylaşılacak Metin:\n${postTextForSharing ?? "Metin üretilemedi."}",
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -314,17 +367,21 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Kapat',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 16,
               ),
             ),
           ),
           FilledButton.icon(
-            icon: const Icon(Icons.share),
+            icon: Icon(Icons.share, color: Colors.white),
             label: Text(
               'Paylaş',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w500,
+                color: Colors.white,
+                fontSize: 16,
               ),
             ),
             onPressed: () {
@@ -360,52 +417,54 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
           return _buildEmptyState();
         } else if (snapshot.hasData) {
           final haberler = snapshot.data!;
-          return RefreshIndicator(
-            onRefresh: () async => _fetchAndTranslateNews(),
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              itemCount: haberler.length,
-              itemBuilder: (context, index) {
-                final haber = haberler[index];
-                return Dismissible(
-                  key: Key(haber.link),
-                  direction: DismissDirection.endToStart,
-                  confirmDismiss: (direction) async {
-                    await _openInBrowser(haber.link);
-                    return false;
-                  },
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20.0),
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.open_in_browser, color: Colors.white, size: 28),
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.black.withOpacity(0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+          return Column(
+            children: [
+              // Filtreleme barı (sadece kullanıcının seçtiği kategoriler)
+              if (_userInterests.isNotEmpty)
+                CategoryFilterBar(
+                  categories: _userInterests,
+                  selectedCategories: _selectedCategories,
+                  onSelectionChanged: _onCategorySelectionChanged,
+                  showAllOption: true,
+                ),
+              // Haber listesi
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async => _fetchAndTranslateNews(forceRefresh: true),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    itemCount: _isFiltered ? _filteredNews.length : haberler.length,
+                    itemBuilder: (context, index) {
+                      final haber = _isFiltered ? _filteredNews[index] : haberler[index];
+                      return Dismissible(
+                        key: Key(haber.link),
+                        direction: DismissDirection.endToStart,
+                        confirmDismiss: (direction) async {
+                          await _openInBrowser(haber.link);
+                          return false;
+                        },
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20.0),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.open_in_browser, color: Colors.white, size: 28),
                         ),
-                      ],
-                    ),
-                    child: NewsListItem(
-                      haber: haber,
-                      onTap: () => _summarizeAndShowPopup(haber),
-                    ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: NewsListItem(
+                            haber: haber,
+                            onTap: () => _summarizeAndShowPopup(haber),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           );
         } else {
           return const Center(child: Text('Bilinmeyen bir hata oluştu.'));
@@ -435,13 +494,28 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              icon: const Icon(Icons.settings),
-              label: const Text('Ayarları Aç'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: Theme.of(context).brightness == Brightness.dark ? 0 : 1,
+              ),
+              icon: const Icon(Icons.settings, size: 20),
+              label: Text(
+                'Ayarları Aç',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               onPressed: () {
                 Navigator.push(
                   context, 
                   MaterialPageRoute(builder: (context) => const SettingsScreen())
-                ).then((_) => _fetchAndTranslateNews());
+                ).then((_) => _fetchAndTranslateNews(forceRefresh: true));
               },
             )
           ],
@@ -452,3 +526,4 @@ class _PersonalizedFeedScreenState extends State<PersonalizedFeedScreen> {
 
   // Eski kart fonksiyonu kaldırıldı; NewsListItem kullanılmaktadır.
 }
+
