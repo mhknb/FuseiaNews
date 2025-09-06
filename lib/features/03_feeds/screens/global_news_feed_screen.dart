@@ -11,6 +11,7 @@ import 'web_view_screen.dart';
 import '../../../core/api/api_service.dart';
 import '../../../core/api/gemini_api_service.dart';
 import '../../../core/api/image_search_service.dart';
+import '../../../core/api/ad_manager.dart';
 import '../../../core/models/news_model.dart';
 import '../widgets/news_list_item.dart';
 import '../widgets/animated_news_list.dart';
@@ -63,6 +64,10 @@ class _GlobalNewsScreenState extends State<GlobalNewsScreen> {
     final news = await _apiService.fetchGlobalNews();
     _allNews = news;
     _filteredNews = news;
+    
+    // Refresh'te interstitial ad göster
+    AdManager().showInterstitialAdOnRefresh();
+    
     return news;
   }
 

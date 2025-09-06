@@ -5,11 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'core/utilis/providers.dart';
 
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
   // .env dosyasını yüklemeye çalış, yoksa hata verme
   try {
     await dotenv.load(fileName: ".env");
@@ -17,6 +20,9 @@ Future<void> main() async {
     // .env dosyası yoksa devam et, environment variable'lar kullanılacak
     print("Warning: .env file not found, using system environment variables");
   }
+
+  // AdMob'u başlat
+  await MobileAds.instance.initialize();
 
   runApp(
     ChangeNotifierProvider(

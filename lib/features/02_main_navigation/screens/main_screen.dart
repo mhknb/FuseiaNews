@@ -6,6 +6,7 @@ import '../../03_feeds/screens/global_news_feed_screen.dart';
 import '../../03_feeds/screens/personalized_feed_screen.dart';
 import '../../03_feeds/screens/youtube_feed_screen.dart';
 import '../../04_settings/screens/settings_screen.dart';
+import '../../../core/api/ad_manager.dart';
 
 
 class MainScreen extends StatefulWidget {
@@ -54,6 +55,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       });
       _pageController.reset();
       _pageController.forward();
+      
+      // Kategori değişiminde interstitial ad göster
+      AdManager().showInterstitialAdOnCategoryChange();
     }
   }
 

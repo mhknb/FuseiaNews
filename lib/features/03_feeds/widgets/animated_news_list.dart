@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/news_model.dart';
 import 'news_list_item.dart';
+import 'native_ad_widget.dart';
 
 class AnimatedNewsList extends StatefulWidget {
   final List<HaberModel> haberler;
@@ -101,11 +102,22 @@ class _AnimatedNewsListState extends State<AnimatedNewsList>
           },
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            itemCount: widget.haberler.length,
+            itemCount: widget.haberler.length + (widget.haberler.length ~/ 5), // Her 5 haberde 1 reklam
             itemBuilder: (context, index) {
-              final haber = widget.haberler[index];
-              final animation = index < _itemAnimations.length
-                  ? _itemAnimations[index]
+              // Her 5 haberde bir native ad göster
+              if ((index + 1) % 6 == 0) {
+                return const NativeAdWidget();
+              }
+              
+              // Haber index'ini hesapla (reklamları çıkar)
+              final haberIndex = index - (index ~/ 6);
+              if (haberIndex >= widget.haberler.length) {
+                return const SizedBox.shrink();
+              }
+              
+              final haber = widget.haberler[haberIndex];
+              final animation = haberIndex < _itemAnimations.length
+                  ? _itemAnimations[haberIndex]
                   : const AlwaysStoppedAnimation(1.0);
 
               return AnimatedBuilder(
