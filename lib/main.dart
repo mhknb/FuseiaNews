@@ -10,7 +10,13 @@ import 'core/utilis/providers.dart';
 
 
 Future<void> main() async {
-  await dotenv.load(fileName: ".env");
+  // .env dosyasını yüklemeye çalış, yoksa hata verme
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    // .env dosyası yoksa devam et, environment variable'lar kullanılacak
+    print("Warning: .env file not found, using system environment variables");
+  }
 
   runApp(
     ChangeNotifierProvider(
