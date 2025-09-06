@@ -6,7 +6,14 @@ import 'package:http/http.dart' as http;
 
 class ImageSearchService {
   static const String _baseUrl = 'https://api.pexels.com/v1/';
-  final String? _apiKey = dotenv.env['PEXELS_API_KEY'];
+  
+  String? get _apiKey {
+    try {
+      return dotenv.env['PEXELS_API_KEY'];
+    } catch (e) {
+      return null;
+    }
+  }
 
   /// Verilen bir anahtar kelime ile ilgili bir görselin URL'sini arar ve bulur.
   Future<String?> searchImageByKeyword(String keyword) async {
